@@ -1,0 +1,17 @@
+# Render Blueprint - REO / SDG 4 Project Management
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: reo-sdg4
+    runtime: python
+    region: singapore
+
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && gunicorn run:app --bind 0.0.0.0:$PORT
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: SECRET_KEY
+        generateValue: true
+      # ADMIN_PIN: กำหนดใน Render Dashboard → Environment (เช่น 123456)

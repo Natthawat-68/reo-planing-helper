@@ -1,0 +1,86 @@
+"""เติมข้อมูลเริ่มต้นเมื่อฐานข้อมูลว่าง — สร้าง admin + หน่วยงาน + โครงการตัวอย่างเล็กน้อย"""
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+
+from flask import current_app
+
+from .database import db
+from .models import Org, Project, User
+from .utils import generate_unique_org_pin, random_pin_6
+
+
+def load_if_empty() -> None:
+    """โหลดข้อมูลเริ่มต้นถ้ายังไม่มีข้อมูลในฐานข้อมูล"""
+    if Org.query.first() is not None:
+        return
+
+    # Admin PIN: กำหนดผ่าน env ADMIN_PIN (6 หลัก) ได้ ถ้าไม่กำหนดใช้ random
+    admin_cfg = str(current_app.config.get("ADMIN_PIN", "") or "").strip()
+    if admin_cfg and len(admin_cfg) == 6 and admin_cfg.isdigit():
+        admin_pin = admin_cfg
+    else:
+        admin_pin = random_pin_6()
+    current_app.config["_SEEDED_ADMIN_PIN"] = admin_pin  # แสดงใน banner ตอนรัน
+
+    used_pins: set[str] = {admin_pin}
+
+    orgs = [
+        ("org-001", "สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน"),
+        ("org-002", "สพป.นม.1"), ("org-003", "สพป.นม.2"), ("org-004", "สพป.นม.3"),
+        ("org-005", "สพป.นม.4"), ("org-006", "สพป.นม.5"), ("org-007", "สพป.นม.6"),
+        ("org-008", "สพป.นม.7"), ("org-009", "สพป.นม."),
+        ("org-010", "ศูนย์การศึกษาพิเศษ เขตการศึกษา 11 จังหวัดนครราชสีมา"),
+        ("org-011", "โรงเรียนนครราชสีมาปัญญานุกูล"),
+        ("org-012", "สำนักงานอาชีวศึกษาจังหวัดนครราชสีมา"),
+        ("org-013", "สำนักงานคณะกรรมการส่งเสริมการศึกษาเอกชน"),
+        ("org-014", "สำนักงานส่งเสริมการเรียนรู้จังหวัดนครราชสีมา"),
+        ("org-015", "สำนักงานส่งเสริมการปกครองท้องถิ่นจังหวัดนครราชสีมา"),
+        ("org-016", "สำนักงานพระพุทธศาสนาจังหวัดนครราชสีมา"),
+        ("org-017", "วิทยาลัยนาฏศิลปนครราชสีมา"),
+        ("org-018", "กระทรวงอุดมศึกษา วิทยาศาสตร์ วิจัย และนวัตกรรม"),
+        ("org-019", "โรงเรียนสาธิตมหาวิทยาลัยราชภัฏนครราชสีมา"),
+        ("org-020", "โรงเรียนสุรวิวัฒน์ มหาวิทยาลัยเทคโนโลยีสุรนารี"),
+        ("org-021", "มหาวิทยาลัยเทคโนโลยีสุรนารี"),
+        ("org-022", "มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน"),
+        ("org-023", "มหาวิทยาลัยราชภัฏนครราชสีมา"),
+        ("org-024", "มหาวิทยาลัยมหาจุฬาลงกรณราชวิทยาลัย วิทยาเขตนครราชสีมา"),
+        ("org-025", "วิทยาลัยศาสนศาสตร์นครราชสีมา มหาวิทยาลัยมหามกุฏราชวิทยาลัย"),
+        ("org-026", "มหาวิทยาลัยรามคำแหง สาขาวิทยาบริการเฉลิมพระเกียรตินครราชสีมา"),
+        ("org-027", "สถาบันบัณฑิตพัฒนบริหารศาสตร์ คณะรัฐประศาสนศาสตร์ ฯ"),
+        ("org-028", "มหาวิทยาลัยวงษ์ชวลิตกุล"), ("org-029", "วิทยาลัยนครราชสีมา"),
+        ("org-030", "วิทยาลัยเทคโนโลยีพนมวันท์"),
+        ("org-031", "วิทยาลัยพยาบาลบรมราชชนนีนครราชสีมา"),
+        ("org-032", "สำนักงานพัฒนาสังคมและความมั่นคงของมนุษย์จังหวัดนครราชสีมา"),
+        ("org-033", "สำนักงานสาธารณสุขจังหวัดนครราชสีมา"),
+        ("org-034", "สำนักงานสถิติจังหวัดนครราชสีมา"),
+        ("org-035", "สำนักงานศึกษาธิการจังหวัดนครราชสีมา"),
+    ]
+
+    org_pins: dict[str, str] = {}
+    for oid, name in orgs:
+        pin = generate_unique_org_pin(used_pins)
+        used_pins.add(pin)
+        org_pins[oid] = pin
+        db.session.add(Org(id=oid, name=name, active=True, pin=pin))
+
+    db.session.add(User(id="u-admin", username="admin", password=admin_pin, role="admin", org_id=None, active=True))
+
+    for oid, _ in orgs:
+        mgr_pin = org_pins[oid]
+        db.session.add(User(id=f"u-mgr-{oid}", username=f"mgr-{oid}", password=mgr_pin, role="manager", org_id=oid, active=True))
+
+    base = datetime.utcnow()
+    projects = [
+        ("p-1", "org-023", "โครงการพัฒนาทักษะดิจิทัลสำหรับครู", 250000, ["4.4", "4.c"], "admin"),
+        ("p-2", "org-002", "โครงการส่งเสริมการอ่านออกเขียนได้", 180000, ["4.1", "4.6"], "mgr-org-002"),
+        ("p-3", "org-012", "โครงการพัฒนาทักษะอาชีพ", 280000, ["4.4"], "mgr-org-012"),
+    ]
+    for i, (pid, oid, title, budget, sdg, ub) in enumerate(projects):
+        created = base - timedelta(days=10 - i)
+        p = Project(id=pid, org_id=oid, title=title, budget=budget, objective="", policy="", owner="ผู้รับผิดชอบ",
+                    year=2568, start_date=created.date(), end_date=(created + timedelta(days=180)).date(),
+                    sdg=sdg, created_at=created, updated_at=base - timedelta(days=1), updated_by=ub)
+        db.session.add(p)
+
+    db.session.commit()
