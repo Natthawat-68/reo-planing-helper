@@ -178,7 +178,7 @@ async function renderAuditLog() {
               <label class="block text-sm font-medium mb-2">กรองผู้กระทำ</label>
               <select id="auditFilterBy" class="select select-bordered w-full" onchange="filterAuditLog(event)">
                 <option value="">ทั้งหมด</option>
-                ${allUsers.map(user => `<option value="${user}">${user}</option>`).join('')}
+                ${allUsers.map(user => `<option value="${user}">${getDisplayNameFromUsername(user)}</option>`).join('')}
               </select>
             </div>
             <div>

@@ -151,7 +151,7 @@ async function renderDashboard() {
               <p class="text-sm text-gray-500 mt-1">บาท</p>
             </div>
             <div class="w-16 h-16 shrink-0 rounded-xl bg-green-600 flex items-center justify-center text-white text-2xl shadow-lg">
-              <i class="fas fa-dollar-sign"></i>
+              <i class="fas fa-coins"></i>
             </div>
           </div>
         </div>
@@ -181,7 +181,7 @@ async function renderDashboard() {
           </div>
           <div class="text-center mt-4">
             <p class="text-xl font-bold text-gray-800" id="kpiSdgTop">-</p>
-            <p class="text-sm text-gray-500">เป้าหมายย่อยที่มีการใช้งานมากที่สุด</p>
+            <p class="text-sm text-gray-500">SDG ที่ใช้มากที่สุดในระบบ</p>
           </div>
         </div>
 
@@ -193,7 +193,7 @@ async function renderDashboard() {
           </div>
           <div class="text-center mt-4">
             <p class="text-xl font-bold text-gray-800" id="kpiMultiPct">-</p>
-            <p class="text-sm text-gray-500">สัดส่วนโครงการที่มีหลายเป้าหมาย SDG</p>
+            <p class="text-sm text-gray-500">ของโครงการมี SDG มากกว่า 1 เป้าหมาย</p>
           </div>
         </div>
 
@@ -205,7 +205,7 @@ async function renderDashboard() {
           </div>
           <div class="text-center mt-4">
             <p class="text-xl font-bold text-gray-800" id="kpiTopGroup">-</p>
-            <p class="text-sm text-gray-500">หมวดหมู่ที่มีการใช้งานมากที่สุด</p>
+            <p class="text-sm text-gray-500">หมวดหมู่ SDG ที่ใช้มากที่สุด</p>
           </div>
         </div>
       </div>
@@ -317,7 +317,7 @@ function renderDashboardData() {
     .map(item => `
       <tr>
         <td class="font-medium">${item.orgName || getOrgName(item.orgId)}</td>
-        <td class="text-right">${item.count}</td>
+        <td class="text-right">${item.projectCount ?? item.count ?? 0}</td>
         <td class="text-right">${formatMoney(item.budget)} ฿</td>
       </tr>
     `).join('');
@@ -337,7 +337,7 @@ function renderDashboardData() {
             ${item.sdg}
           </span>
         </td>
-        <td class="text-right">${item.count}</td>
+        <td class="text-right">${item.projectCount ?? item.count ?? 0}</td>
       </tr>
     `}).join('');
 }
@@ -401,7 +401,7 @@ function renderDashboardCharts() {
   });
   createDoughnutChart(
     'chartSdgMulti',
-    { labels: ['แท็ก 1 SDG', 'แท็กหลาย SDG', 'ไม่ระบุ SDG'], values: [single, multi, none] },
+    { labels: ['1 เป้าหมาย', 'หลายเป้าหมาย', 'ไม่ระบุ'], values: [single, multi, none] },
     ['#16a34a', '#2563eb', '#94a3b8']
   );
   

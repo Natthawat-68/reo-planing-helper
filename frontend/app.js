@@ -865,7 +865,7 @@ function renderDashboard() {
               <p class="text-sm text-gray-500 mt-1">บาท</p>
             </div>
             <div class="w-16 h-16 rounded-xl bg-green-600 flex items-center justify-center text-white text-2xl shadow-lg">
-              <i class="fas fa-dollar-sign"></i>
+              <i class="fas fa-coins"></i>
             </div>
           </div>
         </div>
@@ -2024,7 +2024,7 @@ function renderProjectCards(projects) {
         
         <div class="flex justify-between items-center pt-3 border-t">
           <div class="text-sm text-gray-500">
-            <i class="fas fa-dollar-sign mr-1"></i>
+            <i class="fas fa-coins mr-1"></i>
             <span class="font-semibold">${formatMoney(p.budget)}</span> บาท
           </div>
         </div>

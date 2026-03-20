@@ -363,7 +363,7 @@ function renderProjectCards(projects) {
 
         <div class="flex justify-between items-center pt-3 border-t">
           <div class="text-sm text-gray-500">
-            <i class="fas fa-dollar-sign mr-1"></i>
+            <i class="fas fa-coins mr-1"></i>
             <span class="font-semibold">${formatMoney(p.budget)}</span> บาท
           </div>
         </div>
