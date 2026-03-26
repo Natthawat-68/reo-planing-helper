@@ -1,32 +1,5 @@
-/**
- * ================================================================================
- * Organizations Page - หน้าจัดการหน่วยงาน (Admin)
- * ================================================================================
- * 
- * ไฟล์นี้จัดการหน้าจัดการหน่วยงานสำหรับ Admin
- * 
- * ================================================================================
- * ฟังก์ชัน:
- * ================================================================================
- * 
- * - renderOrganizations()     - แสดงหน้าจัดการหน่วยงาน
- * - renderOrganizationsView() - แสดงหน้าดูหน่วยงาน (สำหรับ Manager)
- * - openOrgModal()          - เปิด modal สร้าง/แก้ไขหน่วยงาน
- * - saveOrg()               - บันทึกหน่วยงาน
- * - deleteOrg()             - ลบหน่วยงาน
- * - toggleOrgStatus()       - เปิด/ปิดใช้งานหน่วยงาน
- * 
- * ================================================================================
- * สิทธิ์การเข้าถึง:
- * ================================================================================
- * 
- * - Admin: เห็นและจัดการหน่วยงานทั้งหมด
- * - Manager: เห็นเฉพาะรายชื่อหน่วยงาน (view-only)
- * 
- * ================================================================================
- */
 
-// ==================== Organizations Page ====================
+
 function renderOrganizations() {
   const content = document.getElementById('pageContent');
 
@@ -34,8 +7,8 @@ function renderOrganizations() {
     <div class="page">
       <div class="flex justify-between items-center mb-8">
         <div>
-          <h1 class="text-4xl font-bold text-gray-800">จัดการหน่วยงาน</h1>
-          <p class="text-gray-500 mt-2">เพิ่ม แก้ไข หรือจัดการหน่วยงานในระบบ</p>
+          <h1 class="text-4xl font-bold text-gray-800">การบริหารจัดการหน่วยงาน</h1>
+          <p class="text-gray-500 mt-2">เพิ่ม แก้ไข และบริหารจัดการข้อมูลหน่วยงานในระบบ</p>
         </div>
         <button onclick="openOrgModal()" class="btn btn-outline gap-2 whitespace-nowrap">
           <i class="fas fa-plus-circle"></i>
@@ -104,15 +77,14 @@ function renderOrganizations() {
   `;
 }
 
-// ==================== Organizations View (Manager) ====================
 function renderOrganizationsView() {
   const content = document.getElementById('pageContent');
   content.innerHTML = `
     <div class="page">
       <div class="flex justify-between items-center mb-8">
         <div>
-          <h1 class="text-4xl font-bold text-gray-800">หน่วยงานทั้งหมด</h1>
-          <p class="text-gray-500 mt-2">ดูรายชื่อหน่วยงานในระบบ (ดูข้อมูลเท่านั้น)</p>
+          <h1 class="text-4xl font-bold text-gray-800">บัญชีรายชื่อหน่วยงาน</h1>
+          <p class="text-gray-500 mt-2">ตรวจสอบรายชื่อหน่วยงานทั้งหมดในระบบ (สำหรับเรียกดูข้อมูล)</p>
         </div>
       </div>
 

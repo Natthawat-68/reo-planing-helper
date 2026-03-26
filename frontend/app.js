@@ -1,4 +1,4 @@
-// ==================== Data Store ====================
+
 const LS_KEY = 'sdg4_data_v3';
 const SESSION_KEY = 'sdg4_session_v3';
 const SCHEMA_VERSION = 5;
@@ -193,7 +193,6 @@ function migrateData(db) {
   if (!db || typeof db !== 'object') return defaultData();
   if (db.schemaVersion === SCHEMA_VERSION) return db;
 
-  // v2 (PIN-based) -> v3 (user-based)
   if (!db.schemaVersion || db.schemaVersion < 3) {
     db.orgs = Array.isArray(db.orgs) ? db.orgs : [];
     db.projects = Array.isArray(db.projects) ? db.projects : [];
@@ -221,11 +220,11 @@ function migrateData(db) {
 
     db.projects.forEach(p => {
       if (!p || typeof p !== 'object') return;
-      // Draft/Ready system removed
+
       if ('status' in p) delete p.status;
       if (!p.year) p.year = 2568;
       if (!p.updatedBy || typeof p.updatedBy !== 'string') p.updatedBy = 'admin';
-      // If updatedBy is an old orgId, map to a manager username if exists
+
       const maybeMgr = db.users.find(u => u.role === 'manager' && u.orgId === p.updatedBy);
       if (maybeMgr) p.updatedBy = maybeMgr.username;
     });
@@ -234,7 +233,6 @@ function migrateData(db) {
     return db;
   }
 
-  // For v3+ -> just update schema version
   db.schemaVersion = SCHEMA_VERSION;
   return db;
 }
@@ -246,13 +244,12 @@ function ensureOrgPins(db) {
 
   db.orgs.forEach((org) => {
     if (!org) return;
-    // ensure org.pin exists
+
     if (!org.pin) {
       const mgr = db.users.find(u => u.role === 'manager' && u.orgId === org.id);
       org.pin = (mgr?.password || DEFAULT_ORG_PIN).toString();
     }
 
-    // ensure manager user exists and sync password with org.pin
     let mgr = db.users.find(u => u.role === 'manager' && u.orgId === org.id);
     if (!mgr) {
       db.users.push({
@@ -269,7 +266,6 @@ function ensureOrgPins(db) {
     }
   });
 
-  // ensure admin exists
   if (!db.users.some(u => u.role === 'admin')) {
     db.users.unshift({ id: 'u-admin', username: 'admin', password: '999999', role: 'admin', active: true });
   }
@@ -278,13 +274,11 @@ function ensureOrgPins(db) {
 }
 
 function seedDemoProjectsB(db) {
-  // เติมเดโมเพื่อให้กราฟชุด B เห็นชัด (เติมเฉพาะตอนข้อมูลเดโมยังน้อย)
+
   if (!db || typeof db !== 'object') return db;
   if (db.demoSeededB) return db;
   if (!Array.isArray(db.projects)) db.projects = [];
 
-  // ถ้ามีข้อมูลเยอะแล้ว แปลว่าผู้ใช้เริ่มกรอกจริง ไม่เติมเพิ่ม
-  // แต่ถ้ายังไม่มีโครงการเยอะพอ ให้เติมให้ครบ 37 โครงการ
   if (db.projects.length >= 37) return db;
 
   const now = Date.now();
@@ -308,60 +302,48 @@ function seedDemoProjectsB(db) {
   });
 
   const seeds = [
-    // ให้บางหน่วยงานมีโครงการเยอะ เพื่อให้กราฟ/สรุปเห็นความต่างชัด
-    // สพป.นม.1 (org-002)
+
     mk('p-3',  'org-002', 'โครงการยกระดับผลสัมฤทธิ์ภาษาไทย ป.1–ป.3', 320000, '2025-03-01', '2025-09-30', ['4.1','4.6'], 'mgr-org-002', 28, 4),
     mk('p-4',  'org-002', 'โครงการเตรียมความพร้อมเด็กปฐมวัยคุณภาพ',        210000, '2025-01-10', '2025-05-31', ['4.2','4.a'], 'mgr-org-002', 34, 10),
     mk('p-5',  'org-002', 'โครงการพัฒนาทักษะอาชีพ/STEAM สำหรับเยาวชน',      450000, '2025-02-15', '2025-08-15', ['4.4','4.3'], 'mgr-org-002', 26, 3),
     mk('p-6',  'org-002', 'โครงการความเสมอภาคสำหรับผู้เรียนกลุ่มเปราะบาง',   150000, '2025-04-01', '2025-10-31', ['4.5','4.a'], 'mgr-org-002', 18, 2),
 
-    // มรภ.นครราชสีมา (org-023)
     mk('p-7',  'org-023', 'โครงการอบรมครูแกนนำและพัฒนาวิทยฐานะ',            380000, '2025-01-20', '2025-04-30', ['4.c','4.7'], 'mgr-org-023', 40, 8),
     mk('p-8',  'org-023', 'โครงการระบบสถานศึกษาปลอดภัยและป้องกันความรุนแรง', 260000, '2025-05-01', '2025-09-30', ['4.a','4.5'], 'mgr-org-023', 20, 5),
     mk('p-9',  'org-023', 'โครงการทุนสนับสนุนการศึกษาต่อและฝึกอาชีพ',         120000, '2025-06-01', '2025-12-31', ['4.b','4.3'], 'mgr-org-023', 12, 1),
 
-    // สอศ.โคราช (org-012)
     mk('p-10', 'org-012', 'โครงการพัฒนาหลักสูตรฐานสมรรถนะและทักษะชีวิต',      300000, '2025-02-01', '2025-06-30', ['4.7','4.1'], 'mgr-org-012', 32, 6),
     mk('p-11', 'org-012', 'โครงการอาชีวะทวิภาคีและการแนะแนวอาชีพ',           520000, '2025-03-15', '2025-11-15', ['4.3','4.4'], 'mgr-org-012', 24, 4),
 
-    // ศึกษาธิการจังหวัด (org-035)
     mk('p-12', 'org-035', 'โครงการยกระดับการอ่านออกเขียนได้แบบเข้มข้น',       190000, '2025-01-05', '2025-07-31', ['4.6','4.1'], 'mgr-org-035', 38, 7),
     mk('p-13', 'org-035', 'โครงการห้องเรียนคุณภาพและสื่อการเรียนรู้',          410000, '2025-04-10', '2025-09-10', ['4.a','4.1','4.7'], 'mgr-org-035', 16, 3),
 
-    // โครงการที่มี SDG เพียง 1 ตัว (ให้กราฟ "แท็ก 1 SDG" โผล่ชัด) - เพิ่มแค่ 3 โครงการ
     mk('p-15', 'org-002', 'โครงการพัฒนาการอ่านออกเขียนได้',                   160000, '2025-03-10', '2025-08-31', ['4.6'], 'mgr-org-002', 25, 5),
     mk('p-16', 'org-023', 'โครงการส่งเสริมสถานศึกษาปลอดภัย',                  220000, '2025-02-20', '2025-07-20', ['4.a'], 'mgr-org-023', 35, 9),
     mk('p-17', 'org-012', 'โครงการพัฒนาทักษะอาชีพ',                           280000, '2025-04-01', '2025-10-31', ['4.4'], 'mgr-org-012', 22, 4),
 
-    // intentionally: no SDG (ให้กราฟ "ไม่ระบุ SDG" โผล่ชัด) - เพิ่มแค่ 1 โครงการ
     mk('p-14', 'org-012', 'โครงการเดโมที่ยังไม่ระบุ SDG',                      null,    '2025-07-01', '2025-09-30', [], 'mgr-org-012', 8, 1),
 
-    // เพิ่มโครงการที่มี SDG หลายตัวเพื่อให้ครบ 37 โครงการ (เน้นสัดส่วนหลาย SDG)
-    // สพป.นม.1 (org-002) - เพิ่มอีก 4 โครงการ
     mk('p-25', 'org-002', 'โครงการพัฒนาคุณภาพการศึกษาระดับประถมศึกษา',         290000, '2025-03-15', '2025-09-15', ['4.1','4.2','4.a'], 'mgr-org-002', 27, 6),
     mk('p-26', 'org-002', 'โครงการส่งเสริมการอ่านออกเขียนได้แบบบูรณาการ',     170000, '2025-04-05', '2025-10-05', ['4.1','4.6','4.7'], 'mgr-org-002', 23, 4),
     mk('p-27', 'org-002', 'โครงการพัฒนาทักษะอาชีพและทักษะชีวิต',               310000, '2025-02-20', '2025-08-20', ['4.4','4.7','4.c'], 'mgr-org-002', 29, 7),
     mk('p-28', 'org-002', 'โครงการลดความเหลื่อมล้ำและส่งเสริมความเสมอภาค',     200000, '2025-05-01', '2025-11-01', ['4.5','4.a','4.b'], 'mgr-org-002', 21, 3),
 
-    // มรภ.นครราชสีมา (org-023) - เพิ่มอีก 4 โครงการ
     mk('p-30', 'org-023', 'โครงการพัฒนาการศึกษาระดับอุดมศึกษา',                420000, '2025-03-10', '2025-09-10', ['4.3','4.7','4.c'], 'mgr-org-023', 26, 5),
     mk('p-31', 'org-023', 'โครงการส่งเสริมสถานศึกษาปลอดภัยและคุณภาพ',          270000, '2025-04-15', '2025-10-15', ['4.a','4.1','4.5'], 'mgr-org-023', 24, 4),
     mk('p-32', 'org-023', 'โครงการพัฒนาทักษะอาชีพและนวัตกรรม',                 380000, '2025-02-28', '2025-08-28', ['4.4','4.3','4.7'], 'mgr-org-023', 28, 6),
     mk('p-33', 'org-023', 'โครงการส่งเสริมทุนการศึกษาและลดความเหลื่อมล้ำ',     190000, '2025-05-10', '2025-11-10', ['4.b','4.5','4.a'], 'mgr-org-023', 22, 3),
 
-    // สอศ.โคราช (org-012) - เพิ่มอีก 4 โครงการ
     mk('p-35', 'org-012', 'โครงการพัฒนาอาชีวศึกษาและทักษะอาชีพ',              480000, '2025-03-20', '2025-09-20', ['4.3','4.4','4.7'], 'mgr-org-012', 25, 5),
     mk('p-36', 'org-012', 'โครงการส่งเสริมการอ่านออกเขียนได้และทักษะพื้นฐาน',  240000, '2025-04-25', '2025-10-25', ['4.6','4.1','4.7'], 'mgr-org-012', 23, 4),
     mk('p-37', 'org-012', 'โครงการพัฒนาคุณภาพสถานศึกษาและครู',                 360000, '2025-02-12', '2025-08-12', ['4.a','4.c','4.1'], 'mgr-org-012', 27, 6),
     mk('p-38', 'org-012', 'โครงการลดความเหลื่อมล้ำและส่งเสริมทุนการศึกษา',      210000, '2025-05-15', '2025-11-15', ['4.5','4.b','4.a'], 'mgr-org-012', 21, 3),
 
-    // ศึกษาธิการจังหวัด (org-035) - เพิ่มอีก 4 โครงการ
     mk('p-40', 'org-035', 'โครงการพัฒนาคุณภาพการศึกษาในทุกระดับ',               370000, '2025-03-25', '2025-09-25', ['4.1','4.2','4.3'], 'mgr-org-035', 26, 5),
     mk('p-41', 'org-035', 'โครงการส่งเสริมการอ่านออกเขียนได้และทักษะพื้นฐาน',  250000, '2025-04-30', '2025-10-30', ['4.6','4.7','4.1'], 'mgr-org-035', 24, 4),
     mk('p-42', 'org-035', 'โครงการพัฒนาสถานศึกษาปลอดภัยและคุณภาพ',             300000, '2025-02-18', '2025-08-18', ['4.a','4.1','4.5'], 'mgr-org-035', 28, 6),
     mk('p-43', 'org-035', 'โครงการส่งเสริมทุนการศึกษาและลดความเหลื่อมล้ำ',       220000, '2025-05-20', '2025-11-20', ['4.b','4.5','4.a'], 'mgr-org-035', 22, 3),
 
-    // หน่วยงานอื่นๆ - เพิ่มอีก 1 โครงการ
     mk('p-45', 'org-001', 'โครงการพัฒนาคุณภาพการศึกษา',                        280000, '2025-03-08', '2025-09-08', ['4.1','4.2','4.3'], 'mgr-org-001', 25, 5),
   ];
 
@@ -387,7 +369,6 @@ function migrateSession(s) {
   if (!s || typeof s !== 'object') return null;
   if (s.userId) return s;
 
-  // Old session format: {role:'admin'} or {role:'manager', orgId}
   if (s.role === 'admin') {
     const adminUser = (DB.users || []).find(u => u.role === 'admin' && u.active !== false);
     return adminUser ? { role: 'admin', userId: adminUser.id } : null;
@@ -407,7 +388,6 @@ function clearSession() {
       localStorage.removeItem(SESSION_KEY);
     }
 
-// ==================== Utilities ====================
 function randomId(prefix) {
   return prefix + '-' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
 }
@@ -432,7 +412,7 @@ function getDisplayNameFromUsername(username) {
   if (!username) return '-';
   if (username === 'admin') return 'Admin';
   
-  // If username is in format 'mgr-org-xxx', find the user and get org name
+
   if (username.startsWith('mgr-')) {
     const user = DB.users.find(u => u.username === username && u.orgId);
     if (user && user.orgId) {
@@ -440,7 +420,7 @@ function getDisplayNameFromUsername(username) {
     }
   }
   
-  // Fallback: return username as-is if not found
+
   return username;
 }
 
@@ -470,9 +450,8 @@ function fileToDataURL(file) {
   });
 }
 
-// Custom Year Picker - Show only years (BE format)
 function openYearPicker(inputId, callback) {
-  // Close any existing picker
+
   closeYearPicker();
   
   const input = document.getElementById(inputId);
@@ -481,22 +460,21 @@ function openYearPicker(inputId, callback) {
   const hiddenInput = document.getElementById(inputId + 'Value');
   const currentYear = hiddenInput ? Number(hiddenInput.value) : null;
   
-  // Create year picker dropdown
+
   const picker = document.createElement('div');
   picker.className = 'year-picker-dropdown';
   picker.id = 'yearPickerDropdown';
   
-  // Year range: BE (no limit)
-  const startYear = 2500; // Minimum reasonable year
-  const endYear = 3000;   // Maximum reasonable year
+
+  const startYear = 2500;
+  const endYear = 3000;
   let currentViewYear = currentYear || new Date().getFullYear() + 543;
   if (currentViewYear < startYear) currentViewYear = startYear;
   if (currentViewYear > endYear) currentViewYear = endYear;
   
   function renderYearPicker(year) {
     const years = [];
-    // Show 9 years: 4 before, current, 4 after (3x3 grid)
-    // No limit - can navigate to any year
+
     const start = year - 4;
     const end = year + 4;
     
@@ -520,17 +498,17 @@ function openYearPicker(inputId, callback) {
       </div>
     `;
     
-    // Insert after input
+
     input.parentElement.style.position = 'relative';
     input.parentElement.appendChild(picker);
   }
   
-  // Store current view year in picker element
+
   picker.dataset.viewYear = currentViewYear;
   
-  // Make functions available globally
+
   window.navigateYearPicker = function(newYear) {
-    // No limit on year navigation
+
     picker.dataset.viewYear = newYear;
     renderYearPicker(newYear);
   };
@@ -555,12 +533,12 @@ function openYearPicker(inputId, callback) {
   
   renderYearPicker(currentViewYear);
   
-  // Prevent clicks inside picker from closing it
+
   picker.addEventListener('click', function(e) {
     e.stopPropagation();
   });
   
-  // Close on outside click
+
   setTimeout(() => {
     const closeHandler = function(e) {
       if (!picker.contains(e.target) && e.target !== input && !input.contains(e.target)) {
@@ -581,7 +559,6 @@ function closeYearPicker() {
   delete window.selectYear;
 }
 
-// ==================== SweetAlert Helpers ====================
 const Toast = Swal.mixin({
   toast: true,
   position: 'top-end',
@@ -606,24 +583,23 @@ function showWarning(title, text = '') {
   Toast.fire({ icon: 'warning', title, text });
 }
 
-// Convert hex color to light background and dark text for softer badge appearance
 function getSoftBadgeColors(hexColor) {
   if (!hexColor || hexColor === '#ccc') {
     return { bg: 'var(--badge-neutral-bg)', text: 'var(--badge-neutral-text)' };
   }
   
-  // Convert hex to RGB
+
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);
   const b = parseInt(hexColor.slice(5, 7), 16);
   
-  // Create light background (mix with white ~85%)
+
   const bgR = Math.round(r * 0.15 + 255 * 0.85);
   const bgG = Math.round(g * 0.15 + 255 * 0.85);
   const bgB = Math.round(b * 0.15 + 255 * 0.85);
   const bgColor = `rgb(${bgR}, ${bgG}, ${bgB})`;
   
-  // Create dark text (darken original color ~40%)
+
   const textR = Math.round(r * 0.6);
   const textG = Math.round(g * 0.6);
   const textB = Math.round(b * 0.6);
@@ -640,13 +616,12 @@ async function confirm(title, text, confirmText = 'ยืนยัน') {
     showCancelButton: true,
     confirmButtonText: confirmText,
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#2563eb', // Use theme blue-600
+    confirmButtonColor: '#2563eb',
     cancelButtonColor: '#d33',
   });
   return result.isConfirmed;
 }
 
-// ==================== Login ====================
 function initLogin() {
   const select = document.getElementById('loginOrg');
   if (!select) return;
@@ -718,15 +693,13 @@ document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   }
 });
 
-// ==================== Navigation ====================
 let currentPage = 'dashboard';
-let projectsScope = 'manage'; // 'all' | 'manage'
+let projectsScope = 'manage';
 
 function initApp() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
 
-  // Ensure sticky offsets align to actual navbar height
   syncNavHeight();
   window.addEventListener('resize', syncNavHeight);
   
@@ -736,7 +709,7 @@ function initApp() {
       : `${getOrgName(session.orgId)}`;
   
   renderMenu();
-  // Show dashboard for both roles (manager is read-only)
+
   navigateTo('dashboard');
 }
 
@@ -774,7 +747,7 @@ function renderMenu() {
     li.addEventListener('click', () => {
       const page = li.getAttribute('data-page');
       navigateTo(page);
-      // Close sidebar on mobile after navigation
+
       const sidebarToggle = document.getElementById('sidebar-toggle');
       if (sidebarToggle && window.innerWidth < 1024) {
         sidebarToggle.checked = false;
@@ -809,7 +782,7 @@ function navigateTo(page) {
       renderProjects();
       break;
     case 'new-project':
-      // Backward-compat: keep route, redirect to manage page
+
       renderProjects();
       break;
     case 'audit-log':
@@ -820,7 +793,6 @@ function navigateTo(page) {
   }
 }
 
-// ==================== Dashboard Page ====================
 function renderDashboard() {
   const content = document.getElementById('pageContent');
   
@@ -964,13 +936,11 @@ function renderDashboard() {
     </div>
   `;
   
-  // Render data
+
   renderDashboardData();
   scheduleDashboardCharts();
 }
 
-// Chart.js can render blank if charts are initialized while the app is still hidden.
-// Schedule chart creation after layout is stable (post-login / post-navigation).
 function scheduleDashboardCharts() {
   const tryRender = (attempt = 0) => {
     const chartReady = typeof window.Chart === 'function';
@@ -983,7 +953,6 @@ function scheduleDashboardCharts() {
 
     renderDashboardCharts();
 
-    // Force resize after first paint so the doughnut charts calculate correct dimensions.
     requestAnimationFrame(() => {
       try {
         Object.values(charts || {}).forEach(c => {
@@ -993,12 +962,11 @@ function scheduleDashboardCharts() {
     });
   };
 
-  // Two ticks to ensure the DOM has been painted and sized.
   requestAnimationFrame(() => setTimeout(() => tryRender(0), 0));
 }
 
 function renderDashboardData() {
-  // By Organization
+
   const byOrg = {};
   DB.projects.forEach(p => {
     if (!byOrg[p.orgId]) {
@@ -1019,19 +987,19 @@ function renderDashboardData() {
       </tr>
     `).join('');
   
-  // By SDG
+
   const bySdg = {};
-  const projectsBySdg = {}; // Track unique projects per SDG
+  const projectsBySdg = {};
   DB.projects.forEach(p => {
     (p.sdg || []).forEach(sdg => {
       if (!bySdg[sdg]) {
         bySdg[sdg] = { count: 0 };
         projectsBySdg[sdg] = new Set();
       }
-      projectsBySdg[sdg].add(p.id); // Unique project IDs
+      projectsBySdg[sdg].add(p.id);
     });
   });
-  // Set count to unique project count
+
   Object.keys(bySdg).forEach(sdg => {
     bySdg[sdg].count = projectsBySdg[sdg].size;
   });
@@ -1054,7 +1022,6 @@ function renderDashboardData() {
 function renderDashboardCharts() {
   const projects = DB.projects || [];
 
-  // 1) Top SDG targets (count tag occurrences), Top 5 + Other
   const sdgCount = {};
   projects.forEach(p => {
     (p.sdg || []).forEach(code => {
@@ -1081,7 +1048,6 @@ function renderDashboardCharts() {
   const kpiSdgTop = document.getElementById('kpiSdgTop');
   if (kpiSdgTop) kpiSdgTop.textContent = top1 ? `${top1Label} (${top1Count})` : '-';
 
-  // 2) Projects with single vs multiple SDG tags (and none)
   let single = 0, multi = 0, none = 0;
   projects.forEach(p => {
     const n = (p.sdg || []).length;
@@ -1101,7 +1067,6 @@ function renderDashboardCharts() {
     kpiMultiPct.textContent = `${pct}%`;
   }
 
-  // 3) Group SDG targets into categories (count tag occurrences)
   const groups = [
     { id: 'access', label: 'คุณภาพการศึกษาในทุกระดับ', codes: new Set(['4.1','4.2','4.3']) },
     { id: 'skills', label: 'ทักษะ/อาชีพ', codes: new Set(['4.4']) },
@@ -1173,7 +1138,7 @@ function createDoughnutChart(canvasId, data, colors) {
 }
 
 function exportCSV() {
-  // Export should include all projects (everyone can view all projects).
+
   const projects = (DB.projects || []);
 
   const sanitizeCell = (v) =>
@@ -1185,8 +1150,6 @@ function exportCSV() {
   const durationOf = (p) => [p.startDate, p.endDate].filter(Boolean).join(' - ');
   const imageInfoOf = (_p) => '';
 
-  // Columns:
-  // - defaultSelected: the "yellow" fields from the user's template
   const COLUMNS = [
     { id: 'org', label: 'หน่วยงานหลัก', defaultSelected: true, get: (p) => getOrgName(p.orgId) },
     { id: 'title', label: 'ชื่อโครงการ', defaultSelected: true, get: (p) => p.title ?? '' },
@@ -1198,7 +1161,6 @@ function exportCSV() {
     { id: 'sdg', label: 'SDG targets', defaultSelected: true, get: (p) => (p.sdg || []).join(', ') },
     { id: 'images', label: 'url (ภาพกิจกรรม 3-4 ภาพ)', defaultSelected: true, get: (p) => imageInfoOf(p) },
 
-    // Optional extras
     { id: 'id', label: 'ID', defaultSelected: false, get: (p) => p.id ?? '' },
     { id: 'year', label: 'ปีงบประมาณ', defaultSelected: false, get: (p) => p.year ?? '' },
     { id: 'imageCount', label: 'จำนวนรูป', defaultSelected: false, get: (_p) => '' },
@@ -1218,7 +1180,7 @@ function exportCSV() {
   };
 
   const defaultSelectedColIds = COLUMNS.filter(c => c.defaultSelected).map(c => c.id);
-  const defaultSelectedProjectIds = projects.map(p => p.id); // default = export all projects
+  const defaultSelectedProjectIds = projects.map(p => p.id);
   lastExport = buildExports(defaultSelectedColIds, defaultSelectedProjectIds);
 
   const countLabel =
@@ -1338,12 +1300,11 @@ function exportCSV() {
         lastExport = buildExports(selectedColIds, selectedProjectIds);
       };
 
-      // Live update when toggling columns
       document.getElementById('exportCols')?.addEventListener('change', updatePreview);
       document.getElementById('exportProjects')?.addEventListener('change', updatePreview);
       document.getElementById('exportProjectSearch')?.addEventListener('input', (e) => {
         renderProjectList(e.target.value);
-        // After re-render, keep preview in sync
+
         updatePreview();
       });
 
@@ -1386,7 +1347,6 @@ function exportCSV() {
             return;
           }
 
-          // Add BOM for UTF-8 to support Thai characters in Excel
           const BOM = '\uFEFF';
           const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
           const link = document.createElement('a');
@@ -1403,7 +1363,6 @@ function exportCSV() {
   });
 }
 
-// ==================== Organizations Page ====================
 function renderOrganizations() {
   const content = document.getElementById('pageContent');
   
@@ -1481,7 +1440,6 @@ function renderOrganizations() {
   `;
 }
 
-// ==================== Organizations View (Manager) ====================
 function renderOrganizationsView() {
   const content = document.getElementById('pageContent');
   content.innerHTML = `
@@ -1551,7 +1509,7 @@ async function openOrgModal(orgId = null) {
     showCancelButton: true,
     confirmButtonText: 'บันทึก',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#2563eb', // Use theme blue-600
+    confirmButtonColor: '#2563eb',
     preConfirm: () => {
       const name = document.getElementById('swal-name').value.trim();
       
@@ -1649,7 +1607,7 @@ async function deleteOrg(orgId) {
   }
 
   if (result.isDenied) {
-    // cascade delete projects & manager users bound to the org
+
     DB.projects = DB.projects.filter(p => p.orgId !== orgId);
     DB.users = (DB.users || []).filter(u => !(u.role === 'manager' && u.orgId === orgId));
     DB.orgs = DB.orgs.filter(o => o.id !== orgId);
@@ -1661,12 +1619,10 @@ async function deleteOrg(orgId) {
   }
 }
 
-// ==================== Projects Page ====================
 function renderProjects() {
   const content = document.getElementById('pageContent');
   projectsScope = 'manage';
 
-  // Manager manage page: show only own projects. Admin: all.
   const visibleProjects = session.role === 'admin'
     ? DB.projects
     : DB.projects.filter(p => p.orgId === session.orgId);
@@ -2034,7 +1990,7 @@ function renderProjectCards(projects) {
 }
 
 function filterProjects(event) {
-  // Get all elements with same id and find the visible one
+
   const getVisibleElement = (id) => {
     const elements = document.querySelectorAll(`#${id}`);
     if (elements.length === 0) return null;
@@ -2056,7 +2012,7 @@ function filterProjects(event) {
     return elements[0];
   };
   
-  // Get values from event target if available, otherwise use getVisibleElement
+
   const getValue = (id) => {
     if (event && event.target && event.target.id === id) {
       return event.target.value;
@@ -2100,7 +2056,6 @@ function filterProjects(event) {
     projects = projects.filter(p => p.year === yearFilter);
   }
 
-  // Budget range filter
   if (budgetMin || budgetMax) {
     const min = budgetMin ? Number(budgetMin) : 0;
     const max = budgetMax ? Number(budgetMax) : Infinity;
@@ -2110,7 +2065,6 @@ function filterProjects(event) {
     });
   }
 
-  // Date range: include projects whose [start..end] intersects [from..to]
   if (from || to) {
     const fromD = from ? new Date(from + 'T00:00:00') : null;
     const toD = to ? new Date(to + 'T23:59:59') : null;
@@ -2126,12 +2080,12 @@ function filterProjects(event) {
     });
   }
   
-  // Sort projects - get value from event target or find visible element
+
   let sortOrder = 'updatedAt-desc';
   if (event && event.target && event.target.id === 'projectSortOrder') {
     sortOrder = event.target.value || 'updatedAt-desc';
   } else {
-    // Get all elements with same id and find the visible one
+
     const getVisibleElement = (id) => {
       const elements = document.querySelectorAll(`#${id}`);
       if (elements.length === 0) return null;
@@ -2167,12 +2121,12 @@ function filterProjects(event) {
 }
 
 function clearProjectFilters() {
-  // Clear all elements with same id (both mobile and desktop)
+
   const clearAllElements = (id, defaultValue = '') => {
     const elements = document.querySelectorAll(`#${id}`);
     elements.forEach(el => {
       el.value = defaultValue;
-      // Trigger change event to update UI
+
       el.dispatchEvent(new Event('change', { bubbles: true }));
     });
   };
@@ -2187,13 +2141,12 @@ function clearProjectFilters() {
   clearAllElements('filterTo', '');
   clearAllElements('projectSortOrder', 'updatedAt-desc');
   
-  // Call filterProjects after a short delay to ensure values are cleared
+
   setTimeout(() => {
     filterProjects();
   }, 10);
 }
 
-// ==================== Project Modal ====================
 async function openProjectModal(projectId = null) {
   const project = projectId ? DB.projects.find(p => p.id === projectId) : null;
   
@@ -2296,7 +2249,7 @@ async function openProjectModal(projectId = null) {
     showCancelButton: true,
     confirmButtonText: 'บันทึก',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#2563eb', // Use theme blue-600
+    confirmButtonColor: '#2563eb',
     didOpen: () => {
       const fileInput = document.getElementById('swal-images');
       const previewDiv = document.getElementById('swal-image-preview');
@@ -2347,7 +2300,7 @@ async function openProjectModal(projectId = null) {
       
       window.getSelectedImages = () => selectedImages;
       
-      // Initialize count on load
+
       updateCount();
     },
     preConfirm: async () => {
@@ -2451,7 +2404,6 @@ function renderProjectForm() {
   navigateTo('projects');
 }
 
-// ==================== Project Detail ====================
 async function viewProject(projectId) {
   const project = DB.projects.find(p => p.id === projectId);
   if (!project) {
@@ -2550,12 +2502,6 @@ async function viewProject(projectId) {
               `).join('')
               : '<p class="text-gray-500 text-center py-8 col-span-2">ยังไม่มีรูปภาพ</p>'}
           </div>
-          ${(project.images?.length || 0) < 3 ? `
-            <div class="mt-4 p-3 rounded-lg border border-amber-200 bg-amber-50/80 flex items-start gap-2">
-              <i class="fas fa-info-circle text-amber-600 mt-0.5 flex-shrink-0"></i>
-              <span class="text-sm text-amber-800">ควรมีรูปอย่างน้อย 3 รูปก่อนสรุป/ส่งรายงาน</span>
-            </div>
-          ` : ''}
         </div>
         
         <div class="text-xs text-gray-400 pt-4 border-t">
@@ -2655,7 +2601,7 @@ async function deleteProject(projectId) {
     return;
   }
   
-  // Check permission
+
   if (!canEdit(project)) {
     showError('ไม่มีสิทธิ์', 'คุณไม่มีสิทธิ์ลบโครงการนี้');
     return;
@@ -2671,12 +2617,12 @@ async function deleteProject(projectId) {
     const projectTitle = project.title;
     const orgId = project.orgId;
     
-    // Remove from DB
+
     const beforeCount = DB.projects.length;
     DB.projects = DB.projects.filter(p => p.id !== projectId);
     const afterCount = DB.projects.length;
     
-    // Verify deletion
+
     if (beforeCount === afterCount) {
       showError('ลบไม่สำเร็จ', 'ไม่พบโครงการในระบบ');
       return;
@@ -2696,17 +2642,16 @@ async function deleteProject(projectId) {
     saveData();
     showSuccess('ลบสำเร็จ', 'โครงการถูกลบแล้ว');
     
-    // Force re-render the current page
+
     if (currentPage === 'projects' || currentPage === 'projects-all') {
       renderProjects();
     } else {
-      // If we're on another page, navigate back to projects
+
       navigateTo('projects');
     }
   }
 }
 
-// ==================== Audit Log Page (Admin) ====================
 function renderAuditLog() {
   const content = document.getElementById('pageContent');
   if (session?.role !== 'admin') {
@@ -2714,7 +2659,6 @@ function renderAuditLog() {
     return;
   }
 
-  // Don't sort here - let filterAuditLog() handle sorting
   const auditLogs = (DB.audit || []).slice();
   
   const actionLabels = {
@@ -2741,7 +2685,6 @@ function renderAuditLog() {
     'change_admin_password': 'badge-info'
   };
 
-  // Get unique users for filter
   const allUsers = [...new Set((DB.audit || []).map(log => log.by).filter(Boolean))].sort();
   
   content.innerHTML = `
@@ -2874,7 +2817,7 @@ function renderAuditLog() {
                 });
                 const actionLabel = actionLabels[log.action] || log.action;
                 const actionColor = actionColors[log.action] || 'badge-neutral';
-                // Get background and text colors from badge class using softer CSS variables
+
                 const bgColorMap = {
                   'badge-success': 'var(--badge-success-bg)',
                   'badge-info': 'var(--badge-info-bg)',
@@ -2916,23 +2859,23 @@ function renderAuditLog() {
     </div>
   `;
   
-  // Store original logs for filtering
+
   window.allAuditLogs = auditLogs;
   filterAuditLog();
 }
 
 function filterAuditLog(event) {
-  // Get all elements with same id and find the visible one
+
   const getVisibleElement = (id) => {
     const elements = document.querySelectorAll(`#${id}`);
     if (elements.length === 0) return null;
     if (elements.length === 1) return elements[0];
     
-    // Check which element is visible by checking computed style and bounding rect
+
     for (const el of elements) {
       const style = window.getComputedStyle(el);
       const rect = el.getBoundingClientRect();
-      // Element is visible if it's not hidden and has dimensions
+
       if (style.display !== 'none' && 
           style.visibility !== 'hidden' && 
           style.opacity !== '0' &&
@@ -2943,11 +2886,11 @@ function filterAuditLog(event) {
         return el;
       }
     }
-    // Fallback: return first element
+
     return elements[0];
   };
   
-  // If event is provided, try to get value from the element that triggered the event
+
   let fromInput, actionSelect, bySelect, sortSelect;
   
   if (event && event.target) {
@@ -2963,7 +2906,7 @@ function filterAuditLog(event) {
     }
   }
   
-  // Get other elements if not set from event
+
   if (!fromInput) fromInput = getVisibleElement('auditFilterFrom');
   if (!actionSelect) actionSelect = getVisibleElement('auditFilterAction');
   if (!bySelect) bySelect = getVisibleElement('auditFilterBy');
@@ -2976,7 +2919,7 @@ function filterAuditLog(event) {
   
   let filtered = (window.allAuditLogs || []).slice();
   
-  // Filter by time (from)
+
   if (fromValue) {
     const fromDate = new Date(fromValue).getTime();
     filtered = filtered.filter(log => {
@@ -2985,36 +2928,36 @@ function filterAuditLog(event) {
     });
   }
   
-  // Filter by action
+
   if (actionFilter) {
     filtered = filtered.filter(log => log.action === actionFilter);
   }
   
-  // Filter by user
+
   if (byFilter) {
     filtered = filtered.filter(log => log.by === byFilter);
   }
   
-  // Sort by time - ensure we're comparing timestamps correctly
+
   if (sortOrder === 'newest' || sortOrder === '') {
     filtered.sort((a, b) => {
       const aTime = typeof a.at === 'number' ? a.at : new Date(a.at).getTime();
       const bTime = typeof b.at === 'number' ? b.at : new Date(b.at).getTime();
-      return bTime - aTime; // ใหม่ → เก่า
+      return bTime - aTime;
     });
   } else if (sortOrder === 'oldest') {
     filtered.sort((a, b) => {
       const aTime = typeof a.at === 'number' ? a.at : new Date(a.at).getTime();
       const bTime = typeof b.at === 'number' ? b.at : new Date(b.at).getTime();
-      return aTime - bTime; // เก่า → ใหม่
+      return aTime - bTime;
     });
   }
   
-  // Update count
+
   const countEl = document.getElementById('auditTotalCount');
   if (countEl) countEl.textContent = filtered.length;
   
-  // Render filtered logs
+
   const tbody = document.getElementById('auditLogTableBody');
   if (!tbody) return;
   
@@ -3063,7 +3006,7 @@ function filterAuditLog(event) {
     });
     const actionLabel = actionLabels[log.action] || log.action;
     const actionColor = actionColors[log.action] || 'badge-neutral';
-    // Get background and text colors from badge class using softer CSS variables
+
     const bgColorMap = {
       'badge-success': 'var(--badge-success-bg)',
       'badge-info': 'var(--badge-info-bg)',
@@ -3101,12 +3044,12 @@ function filterAuditLog(event) {
 }
 
 function clearAuditFilters() {
-  // Clear all elements with same id (both mobile and desktop)
+
   const clearAllElements = (id, defaultValue = '') => {
     const elements = document.querySelectorAll(`#${id}`);
     elements.forEach(el => {
       el.value = defaultValue;
-      // Trigger change event to update UI
+
       el.dispatchEvent(new Event('change', { bubbles: true }));
     });
   };
@@ -3116,13 +3059,12 @@ function clearAuditFilters() {
   clearAllElements('auditFilterBy', '');
   clearAllElements('auditSortOrder', 'newest');
   
-  // Call filterAuditLog after a short delay to ensure values are cleared
+
   setTimeout(() => {
     filterAuditLog();
   }, 10);
 }
 
-// ==================== Users Page (Admin) ====================
 function renderUsers() {
   const content = document.getElementById('pageContent');
   if (session?.role !== 'admin') {
@@ -3225,7 +3167,7 @@ async function setOrgPin(orgId) {
     showCancelButton: true,
     confirmButtonText: 'บันทึก',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#2563eb', // Use theme blue-600
+    confirmButtonColor: '#2563eb',
     preConfirm: () => {
       const p = document.getElementById('swal-orgpin').value.trim();
       if (!/^\d{6}$/.test(p)) {
@@ -3238,7 +3180,7 @@ async function setOrgPin(orgId) {
 
   if (pin) {
     org.pin = pin;
-    ensureOrgPins(DB); // sync manager password
+    ensureOrgPins(DB);
     DB.audit = DB.audit || [];
     DB.audit.unshift({ at: Date.now(), action: 'set_org_pin', by: getCurrentUsername(), orgId });
     saveData();
@@ -3247,13 +3189,9 @@ async function setOrgPin(orgId) {
   }
 }
 
-
-// ==================== Theme ====================
-// Dark mode removed for demo (fixed light theme)
 document.documentElement.setAttribute('data-theme', 'light');
 try { localStorage.removeItem('sdg4_theme'); } catch {}
 
-// ==================== Init ====================
 if (session) {
   initApp();
       } else {

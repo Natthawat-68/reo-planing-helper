@@ -5,25 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SDG 4 Admin Dashboard - ระบบจัดการโครงการ</title>
   
-  <!-- Google Font - Kanit -->
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Tailwind CSS + DaisyUI -->
+  
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- SweetAlert2 -->
+  
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
-  <!-- Chart.js -->
+  
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
   
-  <!-- Font Awesome -->
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <!-- Local styles -->
+  
   <link rel="stylesheet" href="styles.css">
 
   <script>
@@ -40,7 +40,6 @@
 </head>
 <body class="bg-transparent">
 
-<!-- Login Screen -->
 <div id="loginScreen" class="min-h-screen gradient-bg flex items-center justify-center p-4">
   <div class="card w-full max-w-md bg-base-100 shadow-2xl">
     <div class="card-body">
@@ -54,10 +53,10 @@
 
       <div class="form-control">
         <label class="label">
-          <span class="label-text font-medium">เลือกหน่วยงาน</span>
+          <span class="label-text font-medium">หน่วยงานที่สังกัด</span>
         </label>
         <select id="loginOrg" class="select select-bordered w-full">
-          <option value="admin">Admin</option>
+          <option value="admin">ผู้ดูแลระบบ (Admin)</option>
         </select>
       </div>
 
@@ -65,10 +64,15 @@
         <label class="label">
           <span class="label-text font-medium">PIN (6 หลัก)</span>
         </label>
-        <input type="password" id="loginPin" placeholder="กรุณาระบุรหัส PIN"
-               class="input input-bordered w-full" maxlength="6" inputmode="numeric" autocomplete="current-password">
+        <div class="relative">
+          <input type="password" id="loginPin" placeholder="กรุณาระบุรหัส PIN"
+                 class="input input-bordered w-full pr-10" maxlength="6" inputmode="numeric" autocomplete="current-password">
+          <button type="button" id="toggleLoginPin" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700">
+            <i class="fas fa-eye" id="loginPinIcon"></i>
+          </button>
+        </div>
         <label class="label">
-          <span class="label-text-alt text-gray-500">PIN แต่ละหน่วยงานไม่ซ้ำกัน</span>
+          <span class="label-text-alt text-gray-500">รหัส PIN สำหรับการเข้าใช้งานระบบเฉพาะหน่วยงาน</span>
         </label>
         <div id="adminPinHint" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p class="text-sm text-blue-700">
@@ -90,9 +94,8 @@
               </div>
               </div>
 
-<!-- Main App -->
 <div id="mainApp" class="hidden min-h-screen">
-  <!-- Navbar -->
+  
   <div class="navbar navbar-custom sticky top-0 z-50">
     <div class="navbar-start">
       <label for="sidebar-toggle" class="btn btn-ghost lg:hidden">
@@ -111,24 +114,24 @@
       <div class="dropdown dropdown-end">
         <label tabindex="0" class="btn btn-ghost gap-2">
           <i class="fas fa-user-circle text-lg lg:text-xl"></i>
-          <span id="userDisplay" class="hidden sm:inline">Admin</span>
+          <span id="userDisplay" class="hidden sm:inline">ผู้ดูแลระบบ</span>
         </label>
         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 mt-2">
-          <li><a id="logoutBtn"><i class="fas fa-sign-out-alt mr-2"></i>ออกจากระบบ</a></li>
+          <li><a id="logoutBtn"><i class="fas fa-sign-out-alt mr-2"></i>ลงชื่อออกจากระบบ</a></li>
         </ul>
       </div>
     </div>
   </div>
 
-  <!-- Sidebar Toggle Checkbox (Mobile) -->
+  
   <input type="checkbox" id="sidebar-toggle" class="drawer-toggle" />
 
-  <!-- Main Content -->
+  
   <div class="flex relative">
-    <!-- Sidebar Overlay (Mobile) -->
+    
     <label for="sidebar-toggle" class="drawer-overlay fixed inset-0 bg-black bg-opacity-50 lg:hidden"></label>
     
-    <!-- Sidebar -->
+    
     <aside class="w-72 p-4 lg:p-6 sidebar-menu sidebar-sticky fixed lg:sticky inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out lg:transition-none" id="sidebar">
       <div class="mb-6">
         <div class="flex items-center justify-between mb-4 lg:mb-4">
@@ -138,36 +141,36 @@
           </label>
         </div>
         <ul class="menu p-0" id="mainMenu">
-          <!-- Menu items will be inserted here -->
+          
         </ul>
       </div>
     </aside>
     
-    <!-- Content Area -->
+    
     <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full lg:ml-72">
       <div id="pageContent">
-        <!-- Pages will be loaded here -->
+        
       </div>
     </main>
   </div>
   </div>
 
-  <!-- Core -->
+  
   <script src="js/config/constants.js"></script>
   <script src="js/core/api.js"></script>
   <script src="js/core/store.js"></script>
   <script src="js/core/utils.js"></script>
   <script src="js/core/alerts.js"></script>
   <script src="js/components/year-picker.js"></script>
-  <!-- Auth -->
+  
   <script src="js/auth/login.js"></script>
-  <!-- Pages -->
+  
   <script src="js/pages/dashboard.js"></script>
   <script src="js/pages/organizations.js"></script>
   <script src="js/pages/projects.js"></script>
   <script src="js/pages/users.js"></script>
   <script src="js/pages/audit.js"></script>
-  <!-- Router & App -->
+  
   <script src="js/router.js"></script>
   <script src="js/app.js"></script>
 

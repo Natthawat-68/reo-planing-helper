@@ -1,31 +1,5 @@
-/**
- * ================================================================================
- * Users Page - หน้าตั้งค่า PIN หน่วยงาน (Admin)
- * ================================================================================
- * 
- * ไฟล์นี้จัดการหน้าตั้งค่า PIN สำหรับ Admin
- * 
- * ================================================================================
- * ฟังก์ชัน:
- * ================================================================================
- * 
- * - renderUsers()       - แสดงหน้าตั้งค่า PIN
- * - openPinModal()      - เปิด modal ตั้งค่า PIN
- * - savePin()           - บันทึก PIN ใหม่
- * - togglePinDisplay()   - แสดง/ซ่อน PIN
- * 
- * ================================================================================
- * หมายเหตุ:
- * ================================================================================
- * 
- * - Admin เท่านั้นที่เข้าถึงหน้านี้ได้
- * - Manager ไม่สามารถเปลี่ยน PIN ได้
- * - PIN ใช้สำหรับ login ของ Manager
- * 
- * ================================================================================
- */
 
-// ==================== Users Page (Admin) - PIN Management ====================
+
 function renderUsers() {
   const content = document.getElementById('pageContent');
   if (session?.role !== 'admin') {
@@ -39,8 +13,8 @@ function renderUsers() {
     <div class="page">
       <div class="flex justify-between items-center mb-8">
         <div>
-          <h1 class="text-4xl font-bold text-gray-800">ตั้งค่า PIN หน่วยงาน</h1>
-          <p class="text-gray-500 mt-2">สำหรับการเข้าสู่ระบบโดยเลือกหน่วยงานและระบุรหัส PIN 6 หลัก</p>
+          <h1 class="text-4xl font-bold text-gray-800">การจัดการรหัส PIN หน่วยงาน</h1>
+          <p class="text-gray-500 mt-2">สำหรับการยืนยันตัวตนเพื่อเข้าสู่ระบบแยกตามรายหน่วยงาน (รหัส PIN 6 หลัก)</p>
         </div>
       </div>
 
@@ -66,17 +40,17 @@ function renderUsers() {
                     </span>
                   </td>
                   <td>
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                      <span class="text-sm text-gray-700 pin-display-${org.id}" data-pin="${org.pin || DEFAULT_ORG_PIN}">••••••</span>
-                      <button class="btn btn-xs btn-ghost text-gray-500 hover:text-gray-700 ml-1" onclick="togglePinDisplay('${org.id}')" title="แสดงหรือซ่อน PIN">
-                        <i class="fas fa-eye pin-eye-${org.id}"></i>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-mono tracking-widest text-gray-700 pin-mask" data-pin="${org.pin}">••••••</span>
+                      <button class="btn btn-xs btn-ghost text-gray-400 hover:text-gray-600" onclick="window.toggleTablePin(this)">
+                        <i class="fas fa-eye text-xs"></i>
                       </button>
                     </div>
                   </td>
                   <td>
                     <div class="flex gap-1.5 justify-end">
                       <button class="btn btn-sm btn-ghost whitespace-nowrap text-gray-700 hover:text-gray-900 hover:bg-gray-100" onclick="setOrgPin('${org.id}')" title="ตั้งค่าหรือรีเซ็ต PIN">
-                        <i class="fas fa-key text-xs"></i> <span class="hidden sm:inline ml-1.5 text-xs">ตั้ง/รีเซ็ต PIN</span><span class="sm:hidden text-xs">PIN</span>
+                        <i class="fas fa-key text-xs"></i> <span class="hidden sm:inline ml-1.5 text-xs">ตั้งค่า/รีเซ็ต PIN</span><span class="sm:hidden text-xs">PIN</span>
                       </button>
                     </div>
                   </td>
@@ -90,24 +64,20 @@ function renderUsers() {
   `;
 }
 
-function togglePinDisplay(orgId) {
-  const pinDisplay = document.querySelector(`.pin-display-${orgId}`);
-  const pinEye = document.querySelector(`.pin-eye-${orgId}`);
-  if (!pinDisplay || !pinEye) return;
-
-  const isVisible = pinDisplay.textContent !== '••••••';
-  const actualPin = pinDisplay.getAttribute('data-pin') || '123456';
-
-  if (isVisible) {
-    pinDisplay.textContent = '••••••';
-    pinEye.classList.remove('fa-eye-slash');
-    pinEye.classList.add('fa-eye');
+window.toggleTablePin = function(btn) {
+  const container = btn.parentElement;
+  const pinMask = container.querySelector('.pin-mask');
+  const icon = btn.querySelector('i');
+  const actualPin = pinMask.getAttribute('data-pin');
+  
+  if (pinMask.textContent === '••••••') {
+    pinMask.textContent = actualPin;
+    icon.classList.replace('fa-eye', 'fa-eye-slash');
   } else {
-    pinDisplay.textContent = actualPin;
-    pinEye.classList.remove('fa-eye');
-    pinEye.classList.add('fa-eye-slash');
+    pinMask.textContent = '••••••';
+    icon.classList.replace('fa-eye-slash', 'fa-eye');
   }
-}
+};
 
 async function setOrgPin(orgId) {
   if (session?.role !== 'admin') return;
@@ -119,8 +89,14 @@ async function setOrgPin(orgId) {
     html: `
       <div class="text-left space-y-2">
         <p>หน่วยงาน: <strong>${org.name}</strong></p>
-        <input id="swal-orgpin" class="input input-bordered w-full mt-3" type="password"
-               placeholder="ระบุรหัส PIN ใหม่ (6 หลัก)" maxlength="6" inputmode="numeric">
+        <div class="relative mt-3">
+          <input id="swal-orgpin" class="input input-bordered w-full pr-10" type="password"
+                 placeholder="ระบุรหัส PIN ใหม่ (6 หลัก)" maxlength="6" inputmode="numeric">
+          <button type="button" onclick="const i=document.getElementById('swal-orgpin'); const ic=document.getElementById('swal-pin-icon'); if(i.type==='password'){i.type='text';ic.className='fas fa-eye-slash text-gray-500';}else{i.type='password';ic.className='fas fa-eye text-gray-500';}" 
+                  class="absolute inset-y-0 right-0 pr-3 flex items-center">
+            <i class="fas fa-eye text-gray-500" id="swal-pin-icon"></i>
+          </button>
+        </div>
       </div>
     `,
     focusConfirm: false,

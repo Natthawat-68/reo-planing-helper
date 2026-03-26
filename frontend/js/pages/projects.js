@@ -1,33 +1,5 @@
-/**
- * ================================================================================
- * Projects Page - หน้าจัดการโครงการ
- * ================================================================================
- * 
- * ไฟล์นี้จัดการหน้าจัดการโครงการ
- * 
- * ================================================================================
- * ฟังก์ชัน:
- * ================================================================================
- * 
- * - renderProjects()       - แสดงหน้าจัดการโครงการ
- * - renderProjectsAll()     - แสดงหน้าดูโครงการทั้งหมด (view-only)
- * - filterProjects()       - กรองโครงการตามเงื่อนไข
- * - openProjectModal()     - เปิด modal สร้าง/แก้ไขโครงการ
- * - saveProject()          - บันทึกโครงการ
- * - deleteProject()        - ลบโครงการ
- * - previewProjectImages() - แสดงตัวอย่างรูปภาพ
- * 
- * ================================================================================
- * สิทธิ์การเข้าถึง:
- * ================================================================================
- * 
- * - Admin: จัดการโครงการทั้งหมดได้
- * - Manager: จัดการเฉพาะโครงการของหน่วยงานตัวเอง
- * 
- * ================================================================================
- */
 
-// ==================== Projects Page ====================
+
 let projectsScope = 'manage';
 
 function renderProjects() {
@@ -42,8 +14,8 @@ function renderProjects() {
     <div class="page">
       <div class="flex justify-between items-center mb-8">
         <div>
-          <h1 class="text-4xl font-bold text-gray-800">จัดการโครงการ</h1>
-          <p class="text-gray-500 mt-2">${session.role === 'admin' ? 'ดู แก้ไข และจัดการโครงการทั้งหมด' : 'จัดการเฉพาะโครงการของหน่วยงานตนเอง'}</p>
+          <h1 class="text-4xl font-bold text-gray-800">การบริหารจัดการโครงการ</h1>
+          <p class="text-gray-500 mt-2">${session.role === 'admin' ? 'ดู แก้ไข และจัดการข้อมูลโครงการทั้งหมดในระบบ' : 'บริหารจัดการโครงการภายใต้สังกัดหน่วยงาน'}</p>
         </div>
         <button onclick="openProjectModal()" class="btn btn-outline gap-2 whitespace-nowrap">
           <i class="fas fa-plus-circle"></i>
@@ -187,8 +159,8 @@ function renderProjectsAll() {
     <div class="page">
       <div class="flex justify-between items-center mb-8">
         <div>
-          <h1 class="text-4xl font-bold text-gray-800">โครงการทั้งหมด</h1>
-          <p class="text-gray-500 mt-2">ดูรายละเอียดโครงการของทุกหน่วยงาน (แก้ไขได้เฉพาะของหน่วยงานตนเอง)</p>
+          <h1 class="text-4xl font-bold text-gray-800">บัญชีรายละเอียดโครงการทั้งหมด</h1>
+          <p class="text-gray-500 mt-2">ตรวจสอบรายละเอียดโครงการในภาพรวมทุกหน่วยงาน (สิทธิจัดการข้อมูลเฉพาะโครงการภายใต้สังกัด)</p>
         </div>
       </div>
 
@@ -381,7 +353,7 @@ function filterProjects(event) {
       const style = window.getComputedStyle(el);
       const rect = el.getBoundingClientRect();
       if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' &&
-          rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
+        rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0) {
         return el;
       }
     }
@@ -553,7 +525,7 @@ async function openProjectModal(projectId = null) {
           <p id="swal-err-sdg" class="text-red-600 text-xs mt-1 hidden"></p>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-2">รูปกิจกรรม (อย่างน้อย 3 รูป สูงสุด 4 รูป)</label>
+          <label class="block text-sm font-medium mb-2">รูปกิจกรรม (สูงสุด 4 รูป)</label>
           <label id="swal-image-label" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-lg border-2 border-dashed border-blue-400 bg-blue-50 hover:bg-blue-100 hover:border-blue-500 text-blue-700 font-medium text-sm cursor-pointer transition-colors">
             <input type="file" id="swal-images" accept="image/*" multiple class="hidden">
             <i class="fas fa-image text-blue-600"></i>
@@ -686,7 +658,6 @@ async function openProjectModal(projectId = null) {
       if (!objective) { showErr('objective', 'กรุณาระบุวัตถุประสงค์'); hasError = true; }
       if (!policy) { showErr('policy', 'กรุณาระบุนโยบาย/ข้อเสนอแนะ'); hasError = true; }
       if (!sdg || sdg.length === 0) { showErr('sdg', 'กรุณาเลือกอย่างน้อย 1 รายการ'); hasError = true; }
-      if (images.length < 3) { showErr('images', 'กรุณาอัปโหลดอย่างน้อย 3 รูป'); hasError = true; }
       if (images.length > 4) { showErr('images', 'สามารถเพิ่มรูปได้สูงสุด 4 รูป'); hasError = true; }
 
       if (hasError) return false;
@@ -770,19 +741,13 @@ async function viewProject(projectId) {
           </div>
           <div class="grid grid-cols-2 gap-4">
             ${project.images?.length > 0
-              ? project.images.map(img => `
+        ? project.images.map(img => `
                 <div class="image-preview">
                   <img src="${img.dataUrl}" alt="${img.name}" style="width:100%;height:200px;object-fit:cover;border-radius:8px;">
                 </div>
               `).join('')
-              : '<p class="text-gray-500 text-center py-8 col-span-2">ยังไม่มีรูปภาพ</p>'}
+        : '<p class="text-gray-500 text-center py-8 col-span-2">ยังไม่มีรูปภาพ</p>'}
           </div>
-          ${(project.images?.length || 0) < 3 ? `
-            <div class="mt-4 p-3 rounded-lg border border-amber-200 bg-amber-50/80 flex items-start gap-2">
-              <i class="fas fa-info-circle text-amber-600 mt-0.5 flex-shrink-0"></i>
-              <span class="text-sm text-amber-800">ควรมีรูปอย่างน้อย 3 รูปก่อนสรุป/ส่งรายงาน</span>
-            </div>
-          ` : ''}
         </div>
         <div class="text-xs text-gray-400 pt-4 border-t">
           <p>สร้างเมื่อ: ${new Date(project.createdAt).toLocaleString('th-TH')}</p>
