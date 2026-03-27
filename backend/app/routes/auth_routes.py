@@ -43,12 +43,12 @@ def login():
         return jsonify(message="PIN ไม่ถูกต้อง"), 401
 
     session["admin_id"] = None
-    session["role"] = "org"
+    session["role"] = "manager"
     session["org_id"] = org_id
 
     return jsonify(
         session={
-            "role": "org",
+            "role": "manager",
             "adminId": None,
             "orgId": org_id,
         },
@@ -85,7 +85,7 @@ def current_user():
             },
         ), 200
 
-    if role == "org" and org_id:
+    if role == "manager" and org_id:
         org = Org.query.get(org_id)
         if not org or not org.active:
             return jsonify(user=None), 200
@@ -93,12 +93,12 @@ def current_user():
             user={
                 "id": org.id,
                 "username": org.name,
-                "role": "org",
+                "role": "manager",
                 "orgId": org.id,
                 "orgName": org.name,
             },
             session={
-                "role": "org",
+                "role": "manager",
                 "adminId": None,
                 "orgId": org.id,
             },
