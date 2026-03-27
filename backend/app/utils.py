@@ -1,31 +1,38 @@
 from __future__ import annotations
 import secrets
 from flask import jsonify, session
-from app.models import Org, User
+from app.models import Admin, Org
 
 ADMIN_ONLY_MSG = "เฉพาะผู้ดูแลระบบเท่านั้น"
 LOGIN_REQUIRED_MSG = "กรุณาเข้าสู่ระบบ"
 
-def get_current_user() -> User | None:
-    user_id = session.get("user_id")
-    if not user_id:
+def get_current_admin() -> Admin | None:
+    admin_id = session.get("admin_id")
+    if not admin_id:
         return None
-    return User.query.get(user_id)
+    return Admin.query.get(admin_id)
 
 def get_current_username() -> str:
-    user = get_current_user()
-    if user:
-        return user.username
+    admin = get_current_admin()
+    if admin:
+        return admin.username
+    org_id = session.get("org_id")
+    if org_id:
+        org = Org.query.get(org_id)
+        if org:
+            return org.name
     return "unknown"
 
 def require_admin() -> None | tuple:
-    user = get_current_user()
-    if not user or user.role != "admin":
+    admin = get_current_admin()
+    if not admin:
         return jsonify(message=ADMIN_ONLY_MSG), 403
     return None
 
 def require_login() -> None | tuple:
-    if not get_current_user():
+    admin_id = session.get("admin_id")
+    org_id = session.get("org_id")
+    if not admin_id and not org_id:
         return jsonify(message=LOGIN_REQUIRED_MSG), 401
     return None
 

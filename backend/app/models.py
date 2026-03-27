@@ -8,18 +8,14 @@ class Org(db.Model):
     name = db.Column(db.String(500), nullable=False)
     active = db.Column(db.Boolean, default=True, nullable=False)
     pin = db.Column(db.String(6), nullable=False, default="123456")
-    users = db.relationship("User", back_populates="org", foreign_keys="User.org_id")
     projects = db.relationship("Project", back_populates="org")
 
-class User(db.Model):
-    __tablename__ = "users"
+class Admin(db.Model):
+    __tablename__ = "admins"
     id = db.Column(db.String(64), primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password = db.Column(db.String(64), nullable=False)
-    role = db.Column(db.String(32), nullable=False)
-    org_id = db.Column(db.String(64), db.ForeignKey("orgs.id"), nullable=True)
     active = db.Column(db.Boolean, default=True, nullable=False)
-    org = db.relationship("Org", back_populates="users", foreign_keys=[org_id])
 
 class Project(db.Model):
     __tablename__ = "projects"

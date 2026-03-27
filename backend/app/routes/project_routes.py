@@ -2,10 +2,10 @@ from __future__ import annotations
 import time
 import uuid
 from datetime import datetime
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 from app.database import db
-from app.models import AuditLog, Project, ProjectImage
-from app.utils import get_current_user, require_login
+from app.models import Admin, AuditLog, Org, Project, ProjectImage
+from app.utils import get_current_username, require_login
 
 project_bp = Blueprint("projects", __name__)
 
@@ -52,10 +52,12 @@ def _parse_date(s):
     except Exception:
         return None
 
-def _check_can_edit(project: Project, user) -> bool:
-    if user.role == "admin":
+def _check_can_edit(project: Project) -> bool:
+    role = session.get("role")
+    org_id = session.get("org_id")
+    if role == "admin":
         return True
-    if user.role == "manager" and project.org_id == user.org_id:
+    if role == "org" and project.org_id == org_id:
         return True
     return False
 
@@ -103,14 +105,16 @@ def create_project():
     err = require_login()
     if err:
         return err
-    user = get_current_user()
+    role = session.get("role")
+    current_org_id = session.get("org_id")
+    username = get_current_username()
     data = request.get_json(silent=True) or {}
     title = _safe_strip(data.get("title"))
     if not title:
         return jsonify(message="กรุณาระบุชื่อโครงการ"), 400
     org_id = data.get("orgId") or data.get("org_id")
-    if user.role == "manager":
-        org_id = user.org_id
+    if role == "org":
+        org_id = current_org_id
     if not org_id:
         return jsonify(message="กรุณาระบุหน่วยงาน"), 400
     try:
@@ -161,7 +165,7 @@ def create_project():
         start_date=start_date,
         end_date=end_date,
         sdg=sdg,
-        updated_by=user.username,
+        updated_by=username,
     )
     db.session.add(p)
     for img in images[:4]:
@@ -176,7 +180,7 @@ def create_project():
     db.session.add(AuditLog(
         at=int(time.time() * 1000),
         action="create_project",
-        by_username=user.username,
+        by_username=username,
         project_id=project_id,
         project_title=title,
         org_id=org_id,
@@ -191,11 +195,12 @@ def update_project(project_id: str):
     err = require_login()
     if err:
         return err
-    user = get_current_user()
+    role = session.get("role")
+    username = get_current_username()
     p = Project.query.get(project_id)
     if not p:
         return jsonify(message="ไม่พบโครงการ"), 404
-    if not _check_can_edit(p, user):
+    if not _check_can_edit(p):
         return jsonify(message="ไม่มีสิทธิ์แก้ไขโครงการนี้"), 403
     data = request.get_json(silent=True) or {}
     old_title = p.title
@@ -259,13 +264,13 @@ def update_project(project_id: str):
     p.objective = objective_val
     p.policy = policy_val
     p.sdg = sdg_val
-    if "orgId" in data and user.role == "admin":
+    if "orgId" in data and role == "admin":
         p.org_id = data["orgId"]
-    p.updated_by = user.username
+    p.updated_by = username
     db.session.add(AuditLog(
         at=int(time.time() * 1000),
         action="update_project",
-        by_username=user.username,
+        by_username=username,
         project_id=project_id,
         project_title=p.title,
         org_id=p.org_id,
@@ -279,18 +284,18 @@ def delete_project(project_id: str):
     err = require_login()
     if err:
         return err
-    user = get_current_user()
+    username = get_current_username()
     p = Project.query.get(project_id)
     if not p:
         return jsonify(message="ไม่พบโครงการ"), 404
-    if not _check_can_edit(p, user):
+    if not _check_can_edit(p):
         return jsonify(message="ไม่มีสิทธิ์ลบโครงการนี้"), 403
     title = p.title
     org_id = p.org_id
     db.session.add(AuditLog(
         at=int(time.time() * 1000),
         action="delete_project",
-        by_username=user.username,
+        by_username=username,
         project_id=project_id,
         project_title=title,
         org_id=org_id,
@@ -305,11 +310,11 @@ def upload_project_images(project_id: str):
     err = require_login()
     if err:
         return err
-    user = get_current_user()
+    username = get_current_username()
     p = Project.query.get(project_id)
     if not p:
         return jsonify(message="ไม่พบโครงการ"), 404
-    if not _check_can_edit(p, user):
+    if not _check_can_edit(p):
         return jsonify(message="ไม่มีสิทธิ์แก้ไขโครงการนี้"), 403
     data = request.get_json(silent=True) or {}
     images = data.get("images") or []
@@ -327,11 +332,11 @@ def upload_project_images(project_id: str):
         )
         db.session.add(pi)
         added += 1
-    p.updated_by = user.username
+    p.updated_by = username
     db.session.add(AuditLog(
         at=int(time.time() * 1000),
         action="upload_image",
-        by_username=user.username,
+        by_username=username,
         project_id=project_id,
         project_title=p.title,
         org_id=p.org_id,
@@ -345,21 +350,21 @@ def delete_project_image(project_id: str, image_id: str):
     err = require_login()
     if err:
         return err
-    user = get_current_user()
+    username = get_current_username()
     p = Project.query.get(project_id)
     if not p:
         return jsonify(message="ไม่พบโครงการ"), 404
-    if not _check_can_edit(p, user):
+    if not _check_can_edit(p):
         return jsonify(message="ไม่มีสิทธิ์แก้ไขโครงการนี้"), 403
     img = ProjectImage.query.filter_by(id=image_id, project_id=project_id).first()
     if not img:
         return jsonify(message="ไม่พบรูปภาพ"), 404
     db.session.delete(img)
-    p.updated_by = user.username
+    p.updated_by = username
     db.session.add(AuditLog(
         at=int(time.time() * 1000),
         action="delete_image",
-        by_username=user.username,
+        by_username=username,
         project_id=project_id,
         project_title=p.title,
         org_id=p.org_id,

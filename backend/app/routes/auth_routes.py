@@ -1,8 +1,7 @@
 from __future__ import annotations
 from flask import Blueprint, jsonify, request, session
 from app.database import db
-from app.models import Org, User
-from app.utils import get_current_user
+from app.models import Admin, Org
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -16,40 +15,41 @@ def login():
     if not pin or len(pin) != 6 or not pin.isdigit():
         return jsonify(message="PIN ต้องเป็นตัวเลข 6 หลัก"), 400
 
+    # Admin login
     if org_id == "admin":
-        user = User.query.filter_by(role="admin", active=True).first()
-        if not user or pin != user.password:
+        admin = Admin.query.filter_by(active=True).first()
+        if not admin or pin != admin.password:
             return jsonify(message="รหัส PIN ของผู้ดูแลระบบไม่ถูกต้อง"), 401
         
-        session["user_id"] = user.id
+        session["admin_id"] = admin.id
         session["role"] = "admin"
         session["org_id"] = None
         
         return jsonify(
             session={
                 "role": "admin",
-                "userId": user.id,
+                "adminId": admin.id,
                 "orgId": None,
             },
             message="เข้าสู่ระบบสำเร็จ",
         ), 200
 
+    # Org login - ใช้เฉพาะ orgs.pin
     org = Org.query.filter_by(id=org_id, active=True).first()
     if not org:
         return jsonify(message="หน่วยงานถูกปิดใช้งาน"), 401
 
-    user = User.query.filter_by(role="manager", org_id=org_id, active=True).first()
-    if not user or pin != (org.pin or user.password):
+    if pin != org.pin:
         return jsonify(message="PIN ไม่ถูกต้อง"), 401
 
-    session["user_id"] = user.id
-    session["role"] = "manager"
+    session["admin_id"] = None
+    session["role"] = "org"
     session["org_id"] = org_id
 
     return jsonify(
         session={
-            "role": "manager",
-            "userId": user.id,
+            "role": "org",
+            "adminId": None,
             "orgId": org_id,
         },
         message="เข้าสู่ระบบสำเร็จ",
@@ -62,26 +62,46 @@ def logout():
 
 @auth_bp.route("/me", methods=["GET"])
 def current_user():
-    user = get_current_user()
-    if not user:
-        return jsonify(user=None), 200
-    
-    org_name = None
-    if user.org_id:
-        org = Org.query.get(user.org_id)
-        org_name = org.name if org else None
-    
-    return jsonify(
-        user={
-            "id": user.id,
-            "username": user.username,
-            "role": user.role,
-            "orgId": user.org_id,
-            "orgName": org_name,
-        },
-        session={
-            "role": session.get("role"),
-            "userId": user.id,
-            "orgId": session.get("org_id"),
-        },
-    ), 200
+    admin_id = session.get("admin_id")
+    org_id = session.get("org_id")
+    role = session.get("role")
+
+    if role == "admin" and admin_id:
+        admin = Admin.query.get(admin_id)
+        if not admin or not admin.active:
+            return jsonify(user=None), 200
+        return jsonify(
+            user={
+                "id": admin.id,
+                "username": admin.username,
+                "role": "admin",
+                "orgId": None,
+                "orgName": None,
+            },
+            session={
+                "role": "admin",
+                "adminId": admin.id,
+                "orgId": None,
+            },
+        ), 200
+
+    if role == "org" and org_id:
+        org = Org.query.get(org_id)
+        if not org or not org.active:
+            return jsonify(user=None), 200
+        return jsonify(
+            user={
+                "id": org.id,
+                "username": org.name,
+                "role": "org",
+                "orgId": org.id,
+                "orgName": org.name,
+            },
+            session={
+                "role": "org",
+                "adminId": None,
+                "orgId": org.id,
+            },
+        ), 200
+
+    return jsonify(user=None), 200

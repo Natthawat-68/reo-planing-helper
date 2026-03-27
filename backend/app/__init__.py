@@ -7,12 +7,10 @@ from .database import db
 from .routes.auth_routes import auth_bp
 from .routes.dashboard_routes import dashboard_bp
 from .routes.project_routes import project_bp
-from .routes.report_routes import report_bp
 from .routes.org_routes import org_bp
 from .routes.pin_routes import pin_bp
-from .routes.user_routes import user_bp
-from .routes.audit_routes import audit_bp
 from .routes.data_routes import data_bp
+from .routes.audit_routes import audit_bp
 
 _FRONTEND_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
@@ -56,11 +54,9 @@ def create_app(config_class: type[Config] = Config) -> Flask:
 
 def register_blueprints(app: Flask) -> None:
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
-    app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
     app.register_blueprint(project_bp, url_prefix="/api/projects")
-    app.register_blueprint(report_bp, url_prefix="/api/projects")
-    app.register_blueprint(pin_bp, url_prefix="/api/orgs")
     app.register_blueprint(org_bp, url_prefix="/api/orgs")
-    app.register_blueprint(user_bp, url_prefix="/api/users")
-    app.register_blueprint(audit_bp, url_prefix="/api/audit-logs")
+    app.register_blueprint(pin_bp, url_prefix="/api/orgs")
     app.register_blueprint(data_bp, url_prefix="/api/data")
+    app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
+    app.register_blueprint(audit_bp, url_prefix="/api/audit-logs")

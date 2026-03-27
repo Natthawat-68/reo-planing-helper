@@ -1,40 +1,37 @@
 from __future__ import annotations
 from flask import Blueprint, jsonify, request
 from app.models import AuditLog
-from app.utils import require_admin
 
 audit_bp = Blueprint("audit", __name__)
 
 @audit_bp.route("/", methods=["GET"])
 def list_audit_logs():
-    err = require_admin()
-    if err:
-        return err
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+    per_page = min(per_page, 100)
+    
     action = request.args.get("action")
-    by_username = request.args.get("by")
-    org_id = request.args.get("orgId")
-    project_id = request.args.get("projectId")
-    try:
-        limit = int(request.args.get("limit", 500))
-    except ValueError:
-        limit = 500
-    if limit > 1000:
-        limit = 1000
-    q = AuditLog.query
+    org_id = request.args.get("org_id")
+    
+    query = AuditLog.query
+    
     if action:
-        q = q.filter_by(action=action)
-    if by_username:
-        q = q.filter_by(by_username=by_username)
+        query = query.filter(AuditLog.action == action)
     if org_id:
-        q = q.filter_by(org_id=org_id)
-    if project_id:
-        q = q.filter_by(project_id=project_id)
-    logs = q.order_by(AuditLog.at.desc()).limit(limit).all()
+        query = query.filter(AuditLog.org_id == org_id)
+    
+    query = query.order_by(AuditLog.at.desc())
+    
+    total = query.count()
+    logs = query.offset((page - 1) * per_page).limit(per_page).all()
+    
     items = [
         {
+            "id": log.id,
             "at": log.at,
             "action": log.action,
             "by": log.by_username,
+            "byUsername": log.by_username,
             "projectId": log.project_id,
             "projectTitle": log.project_title,
             "orgId": log.org_id,
@@ -42,4 +39,10 @@ def list_audit_logs():
         }
         for log in logs
     ]
-    return jsonify(items=items), 200
+    
+    return jsonify(
+        items=items,
+        total=total,
+        page=page,
+        perPage=per_page,
+    ), 200

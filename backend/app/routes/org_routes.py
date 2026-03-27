@@ -1,8 +1,9 @@
 from __future__ import annotations
 import time
+import uuid
 from flask import Blueprint, jsonify, request
 from app.database import db
-from app.models import AuditLog, Org, Project, User
+from app.models import AuditLog, Org, Project
 from app.utils import generate_unique_org_pin, get_current_username, require_admin
 
 org_bp = Blueprint("orgs", __name__)
@@ -47,20 +48,10 @@ def create_org():
     name = str(data.get("name", "")).strip()
     if not name:
         return jsonify(message="กรุณาระบุชื่อหน่วยงาน"), 400
-    import uuid
     org_id = "org-" + uuid.uuid4().hex[:8]
     pin = generate_unique_org_pin()
     org = Org(id=org_id, name=name, active=True, pin=pin)
     db.session.add(org)
-    mgr = User(
-        id=f"u-mgr-{org_id}",
-        username=f"mgr-{org_id}",
-        password=pin,
-        role="manager",
-        org_id=org_id,
-        active=True,
-    )
-    db.session.add(mgr)
     db.session.add(AuditLog(
         at=int(time.time() * 1000),
         action="create_org",
@@ -85,9 +76,6 @@ def update_org(org_id: str):
         new_active = bool(data["active"])
         if new_active != org.active:
             org.active = new_active
-            mgr = User.query.filter_by(role="manager", org_id=org_id).first()
-            if mgr:
-                mgr.active = new_active
             action_type = "enable_org" if new_active else "disable_org"
             status_text = "เปิดใช้งาน" if new_active else "ปิดใช้งาน"
             db.session.add(AuditLog(
@@ -124,7 +112,6 @@ def delete_org(org_id: str):
             message="ไม่สามารถลบได้ กรุณาลบโครงการที่เกี่ยวข้องก่อน",
             projectCount=project_count,
         ), 400
-    User.query.filter_by(role="manager", org_id=org_id).delete()
     db.session.add(AuditLog(
         at=int(time.time() * 1000),
         action="delete_org",

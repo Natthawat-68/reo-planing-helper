@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from flask import current_app
 from .database import db
-from .models import Org, Project, User
+from .models import Admin, Org, Project
 from .utils import generate_unique_org_pin, random_pin_6
 
 def load_if_empty() -> None:
@@ -16,7 +16,6 @@ def load_if_empty() -> None:
         admin_pin = random_pin_6()
     
     current_app.config["_SEEDED_ADMIN_PIN"] = admin_pin
-    used_pins: set[str] = {admin_pin}
 
     orgs = [
         ("org-001", "สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน"),
@@ -56,38 +55,24 @@ def load_if_empty() -> None:
         ("org-035", "สำนักงานศึกษาธิการจังหวัดนครราชสีมา"),
     ]
 
-    org_pins: dict[str, str] = {}
+    used_pins: set[str] = {admin_pin}
     for oid, name in orgs:
         pin = generate_unique_org_pin(used_pins)
         used_pins.add(pin)
-        org_pins[oid] = pin
         db.session.add(Org(id=oid, name=name, active=True, pin=pin))
 
-    db.session.add(User(
-        id="u-admin",
+    db.session.add(Admin(
+        id="admin-001",
         username="admin",
         password=admin_pin,
-        role="admin",
-        org_id=None,
         active=True
     ))
-
-    for oid, _ in orgs:
-        mgr_pin = org_pins[oid]
-        db.session.add(User(
-            id=f"u-mgr-{oid}",
-            username=f"mgr-{oid}",
-            password=mgr_pin,
-            role="manager",
-            org_id=oid,
-            active=True
-        ))
 
     base = datetime.utcnow()
     projects = [
         ("p-1", "org-023", "โครงการพัฒนาทักษะดิจิทัลสำหรับครู", 250000, ["4.4", "4.c"], "admin"),
-        ("p-2", "org-002", "โครงการส่งเสริมการอ่านออกเขียนได้", 180000, ["4.1", "4.6"], "mgr-org-002"),
-        ("p-3", "org-012", "โครงการพัฒนาทักษะอาชีพ", 280000, ["4.4"], "mgr-org-012"),
+        ("p-2", "org-002", "โครงการส่งเสริมการอ่านออกเขียนได้", 180000, ["4.1", "4.6"], "org-002"),
+        ("p-3", "org-012", "โครงการพัฒนาทักษะอาชีพ", 280000, ["4.4"], "org-012"),
     ]
     
     for i, (pid, oid, title, budget, sdg, ub) in enumerate(projects):

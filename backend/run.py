@@ -16,10 +16,10 @@ if __name__ == "__main__":
         admin_pin = app.config.get("_SEEDED_ADMIN_PIN")
         if not admin_pin:
             with app.app_context():
-                from app.models import User
-                admin_user = User.query.filter_by(role="admin", active=True).first()
-                if admin_user:
-                    admin_pin = admin_user.password
+                from app.models import Admin
+                admin = Admin.query.filter_by(active=True).first()
+                if admin:
+                    admin_pin = admin.password
         
         if admin_pin:
             print(f"Admin PIN: {admin_pin}")
