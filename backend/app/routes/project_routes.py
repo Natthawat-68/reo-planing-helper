@@ -3,6 +3,7 @@ import time
 import uuid
 from datetime import datetime
 from flask import Blueprint, jsonify, request, session
+from sqlalchemy.orm import joinedload
 from app.database import db
 from app.models import Admin, AuditLog, Org, Project, ProjectImage
 from app.utils import get_current_username, require_login
@@ -21,6 +22,7 @@ def _project_to_json(p: Project) -> dict:
     return {
         "id": p.id,
         "orgId": p.org_id,
+        "province": p.province or "",
         "title": p.title,
         "budget": p.budget,
         "objective": p.objective,
@@ -57,7 +59,7 @@ def _check_can_edit(project: Project) -> bool:
     org_id = session.get("org_id")
     if role == "admin":
         return True
-    if role == "org" and project.org_id == org_id:
+    if role in ("org", "manager") and project.org_id == org_id:
         return True
     return False
 
@@ -67,10 +69,13 @@ def list_projects():
     if err:
         return err
     org_id = request.args.get("orgId")
+    province = (request.args.get("province") or "").strip()
     sdg = request.args.get("sdg")
     year = request.args.get("year")
     search = (request.args.get("search") or "").strip().lower()
-    q = Project.query
+    q = Project.query.options(joinedload(Project.org), joinedload(Project.images))
+    if province:
+        q = q.filter(Project.province == province)
     if org_id:
         q = q.filter_by(org_id=org_id)
     if year:
@@ -95,7 +100,11 @@ def get_project(project_id: str):
     err = require_login()
     if err:
         return err
-    p = Project.query.get(project_id)
+    p = (
+        Project.query.options(joinedload(Project.org), joinedload(Project.images))
+        .filter_by(id=project_id)
+        .first()
+    )
     if not p:
         return jsonify(message="ไม่พบโครงการ"), 404
     return jsonify(item=_project_to_json(p)), 200
@@ -113,7 +122,7 @@ def create_project():
     if not title:
         return jsonify(message="กรุณาระบุชื่อโครงการ"), 400
     org_id = data.get("orgId") or data.get("org_id")
-    if role == "org":
+    if role in ("org", "manager"):
         org_id = current_org_id
     if not org_id:
         return jsonify(message="กรุณาระบุหน่วยงาน"), 400
@@ -147,15 +156,21 @@ def create_project():
     if not sdg:
         return jsonify(message="กรุณาเลือกอย่างน้อย 1 SDG Target"), 400
     images = data.get("images") or []
-    if len(images) < 3:
-        return jsonify(message="กรุณาอัปโหลดรูปกิจกรรมอย่างน้อย 3 รูป"), 400
     if len(images) > 4:
         return jsonify(message="รูปภาพต้องไม่เกิน 4 รูป"), 400
 
+    # Province validation - ทุก role ต้องมีจังหวัด
+    province = _safe_strip(data.get("province"))
+    if not province:
+        return jsonify(message="กรุณาระบุจังหวัด"), 400
+
     project_id = "p-" + uuid.uuid4().hex[:12]
+    org = Org.query.get(org_id)
+    project_province = province  # ใช้ค่าจาก form ทุก role
     p = Project(
         id=project_id,
         org_id=org_id,
+        province=province,
         title=title,
         budget=budget_val,
         objective=objective,
@@ -187,7 +202,11 @@ def create_project():
         details=f"สร้างโครงการใหม่: {title}",
     ))
     db.session.commit()
-    p = Project.query.get(project_id)
+    p = (
+        Project.query.options(joinedload(Project.org), joinedload(Project.images))
+        .filter_by(id=project_id)
+        .first()
+    )
     return jsonify(item=_project_to_json(p), message="สร้างโครงการสำเร็จ"), 201
 
 @project_bp.route("/<project_id>", methods=["PUT"])
@@ -264,8 +283,23 @@ def update_project(project_id: str):
     p.objective = objective_val
     p.policy = policy_val
     p.sdg = sdg_val
+    org_changed = False
     if "orgId" in data and role == "admin":
-        p.org_id = data["orgId"]
+        new_org_id = data["orgId"]
+        new_org = Org.query.get(new_org_id)
+        if new_org:
+            p.org_id = new_org_id
+            org_changed = True
+    if "province" in data:
+        # ทุก role สามารถอัพเดท province ได้ถ้ามีข้อมูล
+        province_val = _safe_strip(data.get("province"))
+        if province_val:
+            p.province = province_val
+        elif role == "admin":
+            p.province = province_val
+    elif org_changed:
+        new_org = Org.query.get(p.org_id)
+        p.province = (new_org.province or "") if new_org else ""
     p.updated_by = username
     db.session.add(AuditLog(
         at=int(time.time() * 1000),
@@ -277,6 +311,11 @@ def update_project(project_id: str):
         details=f"แก้ไขโครงการ: {old_title}",
     ))
     db.session.commit()
+    p = (
+        Project.query.options(joinedload(Project.org), joinedload(Project.images))
+        .filter_by(id=project_id)
+        .first()
+    )
     return jsonify(item=_project_to_json(p), message="อัปเดตสำเร็จ"), 200
 
 @project_bp.route("/<project_id>", methods=["DELETE"])

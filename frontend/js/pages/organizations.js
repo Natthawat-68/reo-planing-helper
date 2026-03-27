@@ -23,6 +23,7 @@ function renderOrganizations() {
             <thead>
               <tr>
                 <th class="min-w-[200px]">ชื่อหน่วยงาน</th>
+                <th class="min-w-[120px] whitespace-nowrap">จังหวัด</th>
                 <th class="whitespace-nowrap">สถานะ</th>
                 <th class="whitespace-nowrap">โครงการ</th>
                 <th class="text-right whitespace-nowrap">การจัดการ</th>
@@ -37,6 +38,9 @@ function renderOrganizations() {
                       <div>
                         <div class="font-semibold">${org.name}</div>
                       </div>
+                    </td>
+                    <td>
+                      <span class="text-sm text-gray-700 whitespace-nowrap">${org.province || '—'}</span>
                     </td>
                     <td>
                       <span class="text-sm whitespace-nowrap flex items-center gap-1.5">
@@ -94,6 +98,7 @@ function renderOrganizationsView() {
             <thead>
               <tr>
                 <th class="min-w-[200px]">ชื่อหน่วยงาน</th>
+                <th class="min-w-[120px] whitespace-nowrap">จังหวัด</th>
                 <th class="whitespace-nowrap">สถานะ</th>
                 <th class="whitespace-nowrap">โครงการ</th>
               </tr>
@@ -105,6 +110,9 @@ function renderOrganizationsView() {
                   <tr>
                     <td>
                       <div class="font-semibold">${org.name}</div>
+                    </td>
+                    <td>
+                      <span class="text-sm text-gray-600 whitespace-nowrap">${org.province || '—'}</span>
                     </td>
                     <td>
                       <span class="text-sm whitespace-nowrap flex items-center gap-1">
@@ -130,6 +138,7 @@ function renderOrganizationsView() {
 
 async function openOrgModal(orgId = null) {
   const org = orgId ? DB.orgs.find(o => o.id === orgId) : null;
+  const provinceOptions = allProvincesForSelect();
 
   const { value: formValues } = await Swal.fire({
     title: org ? 'แก้ไขหน่วยงาน' : 'เพิ่มหน่วยงานใหม่',
@@ -140,6 +149,53 @@ async function openOrgModal(orgId = null) {
           <input id="swal-name" class="input input-bordered w-full" 
                  value="${org ? org.name : ''}" placeholder="ระบุชื่อหน่วยงาน">
         </div>
+        <div class="relative">
+          <label class="block text-sm font-medium mb-2">จังหวัด</label>
+          <div class="flex gap-2">
+            <div class="flex-1 relative">
+              <input 
+                type="text" 
+                id="swal-province" 
+                class="input input-bordered w-full pr-10" 
+                value="${org?.province || ''}" 
+                placeholder="ระบุจังหวัด"
+                autocomplete="off"
+              >
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <i class="fas fa-map-marker-alt text-gray-400"></i>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              id="swal-province-btn" 
+              class="btn btn-outline btn-md whitespace-nowrap shrink-0 px-4"
+            >
+              <i class="fas fa-chevron-down mr-1 text-xs"></i>
+              เลือก
+            </button>
+          </div>
+          <div id="province-dropdown" class="hidden absolute z-50 mt-1 left-0 right-0 bg-white shadow-xl rounded-lg border border-gray-200 max-h-64 overflow-hidden" style="min-width: 200px;">
+            <div class="p-2 border-b bg-gray-50 sticky top-0">
+              <input 
+                type="text" 
+                id="province-search" 
+                class="input input-bordered input-sm w-full" 
+                placeholder="ค้นหาจังหวัด..."
+              >
+            </div>
+            <div id="province-list" class="overflow-y-auto max-h-48">
+              ${provinceOptions.map(p => `
+                <div 
+                  class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm transition-colors province-option ${org?.province === p ? 'bg-blue-100 font-medium text-blue-700' : ''}" 
+                  data-province="${p.replace(/"/g, '&quot;')}"
+                >
+                  ${p}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1.5">กรอกโดยตรง หรือกดปุ่มเลือกเพื่อค้นหาจากรายการ</p>
+        </div>
       </div>
     `,
     focusConfirm: false,
@@ -147,23 +203,77 @@ async function openOrgModal(orgId = null) {
     confirmButtonText: 'บันทึก',
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#2563eb',
+    didOpen: () => {
+      const btn = document.getElementById('swal-province-btn');
+      const dropdown = document.getElementById('province-dropdown');
+      const searchInput = document.getElementById('province-search');
+      const provinceInput = document.getElementById('swal-province');
+
+      // Toggle dropdown
+      btn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = dropdown?.classList.contains('hidden');
+        // Close all dropdowns
+        document.querySelectorAll('.province-dropdown-panel').forEach(d => d.classList.add('hidden'));
+        
+        if (isHidden && dropdown) {
+          dropdown.classList.remove('hidden');
+          dropdown.classList.add('province-dropdown-panel');
+          searchInput?.focus();
+        }
+      });
+
+      // Filter provinces
+      searchInput?.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        document.querySelectorAll('.province-option').forEach(opt => {
+          const text = opt.textContent.toLowerCase();
+          opt.style.display = query === '' || text.includes(query) ? '' : 'none';
+        });
+      });
+
+      // Select province
+      document.querySelectorAll('.province-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          const province = opt.dataset.province;
+          if (provinceInput) provinceInput.value = province;
+          document.querySelectorAll('.province-option').forEach(o => {
+            o.classList.remove('bg-blue-100', 'font-medium', 'text-blue-700');
+          });
+          opt.classList.add('bg-blue-100', 'font-medium', 'text-blue-700');
+          if (dropdown) dropdown.classList.add('hidden');
+        });
+      });
+
+      // Close dropdown on outside click
+      document.addEventListener('click', (e) => {
+        if (dropdown && !dropdown.contains(e.target) && !btn?.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
+      });
+    },
     preConfirm: () => {
       const name = document.getElementById('swal-name').value.trim();
+      const province = document.getElementById('swal-province')?.value?.trim() || '';
       if (!name) {
         Swal.showValidationMessage('กรุณาระบุชื่อหน่วยงาน');
         return false;
       }
-      return { name };
+      if (!province) {
+        Swal.showValidationMessage('กรุณาระบุจังหวัด');
+        return false;
+      }
+      return { name, province };
     }
   });
 
   if (formValues) {
     try {
       if (org) {
-        await api.updateOrg(org.id, { name: formValues.name });
+        await api.updateOrg(org.id, { name: formValues.name, province: formValues.province });
         showSuccess('อัปเดตสำเร็จ', 'ข้อมูลหน่วยงานถูกอัปเดตแล้ว');
       } else {
-        await api.createOrg(formValues.name);
+        await api.createOrg({ name: formValues.name, province: formValues.province });
         initLogin();
         showSuccess('เพิ่มสำเร็จ', 'หน่วยงานใหม่ถูกเพิ่มแล้ว');
       }

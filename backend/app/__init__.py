@@ -28,6 +28,9 @@ def create_app(config_class: type[Config] = Config) -> Flask:
 
     with app.app_context():
         db.create_all()
+        from .db_migrate import ensure_org_province_column, ensure_project_province_column
+        ensure_org_province_column()
+        ensure_project_province_column()
         from .initial_data import load_if_empty
         load_if_empty()
 

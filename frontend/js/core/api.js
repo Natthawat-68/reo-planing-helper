@@ -57,8 +57,9 @@ const api = {
   },
 
   
-  async createOrg(name) {
-    const r = await fetch(`${API_BASE}/orgs`, fetchOpts('POST', { name }));
+  async createOrg(nameOrBody) {
+    const body = typeof nameOrBody === 'string' ? { name: nameOrBody } : { ...nameOrBody };
+    const r = await fetch(`${API_BASE}/orgs`, fetchOpts('POST', body));
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'เพิ่มหน่วยงานไม่สำเร็จ');
     return data.item;
@@ -126,26 +127,45 @@ const api = {
   },
 
   
-  async getDashboardSummary() {
-    const r = await fetch(`${API_BASE}/dashboard/summary`, { credentials: 'include' });
+  async getDashboardSummary(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const r = await fetch(`${API_BASE}/dashboard/summary${qs ? '?' + qs : ''}`, { credentials: 'include' });
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'โหลดสรุปไม่สำเร็จ');
     return data;
   },
 
   
-  async getDashboardByOrg() {
-    const r = await fetch(`${API_BASE}/dashboard/by-org`, { credentials: 'include' });
+  async getDashboardByOrg(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const r = await fetch(`${API_BASE}/dashboard/by-org${qs ? '?' + qs : ''}`, { credentials: 'include' });
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'โหลดข้อมูลตามหน่วยงานไม่สำเร็จ');
     return data.items || [];
   },
 
   
-  async getDashboardBySdg() {
-    const r = await fetch(`${API_BASE}/dashboard/by-sdg`, { credentials: 'include' });
+  async getDashboardBySdg(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const r = await fetch(`${API_BASE}/dashboard/by-sdg${qs ? '?' + qs : ''}`, { credentials: 'include' });
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'โหลดข้อมูลตาม SDG ไม่สำเร็จ');
+    return data.items || [];
+  },
+
+  
+  async getDashboardByProvince() {
+    const r = await fetch(`${API_BASE}/dashboard/by-province`, { credentials: 'include' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'โหลดข้อมูลตามจังหวัดไม่สำเร็จ');
+    return data.items || [];
+  },
+
+  
+  async getDashboardProvinceOptions() {
+    const r = await fetch(`${API_BASE}/dashboard/province-options`, { credentials: 'include' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'โหลดรายการจังหวัดไม่สำเร็จ');
     return data.items || [];
   },
 

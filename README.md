@@ -32,20 +32,25 @@
 ## ๓. โครงสร้างโครงการ (Project Structure)
 
 ```text
-reo-planing-helper/
+SDG/
 ├── backend/                # ส่วนประมวลผลหลังบ้าน (Flask)
 │   ├── app/                # ซอร์สโค้ดหลักของแอปพลิเคชัน
 │   │   ├── routes/         # ส่วนจัดการ API Endpoints
-│   │   ├── models/         # ส่วนจัดการโครงสร้างฐานข้อมูล
-│   │   └── config.py       # การตั้งค่าระบบ
+│   │   ├── models.py       # ส่วนจัดการโครงสร้างฐานข้อมูล
+│   │   ├── config.py       # การตั้งค่าระบบ
+│   │   └── ...
 │   ├── instance/           # ไฟล์ฐานข้อมูล (SQLite)
 │   ├── run.py              # ไฟล์หลักสำหรับเริ่มทำงาน
 │   └── requirements.txt    # รายการไลบรารีที่จำเป็น
 ├── frontend/               # ส่วนแสดงผลหน้าบ้าน (Vanilla JS)
 │   ├── js/                 # ไฟล์ Logic และ API Calls
-│   │   └── pages/          # ส่วนประกอบหน้าจอต่างๆ
+│   │   ├── pages/          # ส่วนประกอบหน้าจอต่างๆ
+│   │   ├── core/           # คอร์ดีนตรอก (API, Utils, Store)
+│   │   └── config/         # การตั้งค่าคงที่ (SDG Targets)
 │   ├── styles.css          # การกำหนดสไตล์ (Tailwind/Base)
+│   ├── app.js              # Entry point หลัก
 │   └── index.html          # ไฟล์หน้าหลัก (Entry Point)
+├── .gitignore
 └── README.md
 ```
 
@@ -66,6 +71,7 @@ reo-planing-helper/
 
 2. **Setup Virtual Environment**:
    ```bash
+   cd backend
    python -m venv .venv
    # Windows:
    .venv\Scripts\activate
@@ -75,12 +81,12 @@ reo-planing-helper/
 
 3. **Install Dependencies**:
    ```bash
-   pip install -r backend/requirements.txt
+   pip install -r requirements.txt
    ```
 
 4. **Initialize & Run**:
    ```bash
-   python backend/run.py
+   python run.py
    ```
    *ระบบจะเริ่มทำงานที่ `http://localhost:5000`*
 

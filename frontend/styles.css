@@ -195,7 +195,7 @@ html, body {
     
 .chart-container {
   position: relative;
-  height: 200px;
+  min-height: 200px;
 }
     
 .page {

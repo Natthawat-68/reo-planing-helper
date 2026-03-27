@@ -37,6 +37,7 @@ def get_full_data():
         {
             "id": o.id,
             "name": o.name,
+            "province": getattr(o, "province", None) or "",
             "active": o.active,
             "pin": o.pin,
             "projectCount": Project.query.filter_by(org_id=o.id).count(),
@@ -45,7 +46,10 @@ def get_full_data():
     ]
 
     projects = (
-        Project.query.options(joinedload(Project.images))
+        Project.query.options(
+            joinedload(Project.images),
+            joinedload(Project.org),
+        )
         .order_by(Project.updated_at.desc())
         .all()
     )

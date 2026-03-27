@@ -2,6 +2,13 @@
 
 let projectsScope = 'manage';
 
+function projectFilterProvinceOptionsHtml() {
+  const parts = uniqueProvincesFromProjects().map(
+    (p) => `<option value="${p}">${p}</option>`
+  );
+  return `<option value="">ทุกจังหวัด</option>${parts.join('')}`;
+}
+
 function renderProjects() {
   const content = document.getElementById('pageContent');
   projectsScope = 'manage';
@@ -35,6 +42,12 @@ function renderProjects() {
               <div class="sm:col-span-2 md:col-span-3">
                 <label class="block text-sm font-medium mb-1">ค้นหาโครงการ</label>
                 <input type="text" id="searchProject" class="input input-bordered w-full" placeholder="ค้นหาชื่อโครงการ" oninput="filterProjects(event)">
+              </div>
+              <div class="sm:col-span-1 md:col-span-1">
+                <label class="block text-sm font-medium mb-1">กรองจังหวัด</label>
+                <select id="filterProvince" class="select select-bordered w-full" onchange="filterProjects(event)">
+                  ${projectFilterProvinceOptionsHtml()}
+                </select>
               </div>
               <div class="sm:col-span-1 md:col-span-1">
                 <label class="block text-sm font-medium mb-1">กรองหน่วยงาน</label>
@@ -88,6 +101,12 @@ function renderProjects() {
             <div class="shrink min-w-[180px] flex-1 max-w-[200px]">
               <label class="block text-sm font-medium mb-1">ค้นหาโครงการ</label>
               <input type="text" id="searchProject" class="input input-bordered w-full text-sm" placeholder="ค้นหาโครงการ" oninput="filterProjects(event)">
+            </div>
+            <div class="shrink min-w-[120px] flex-1 max-w-[140px]">
+              <label class="block text-sm font-medium mb-1">กรองจังหวัด</label>
+              <select id="filterProvince" class="select select-bordered w-full text-sm" onchange="filterProjects(event)">
+                ${projectFilterProvinceOptionsHtml()}
+              </select>
             </div>
             <div class="shrink min-w-[140px] flex-1 max-w-[160px]">
               <label class="block text-sm font-medium mb-1">กรองหน่วยงาน</label>
@@ -177,6 +196,12 @@ function renderProjectsAll() {
                 <input type="text" id="searchProject" class="input input-bordered w-full" placeholder="ค้นหาชื่อโครงการ" oninput="filterProjects(event)">
               </div>
               <div class="sm:col-span-1 md:col-span-1">
+                <label class="block text-sm font-medium mb-1">กรองจังหวัด</label>
+                <select id="filterProvince" class="select select-bordered w-full" onchange="filterProjects(event)">
+                  ${projectFilterProvinceOptionsHtml()}
+                </select>
+              </div>
+              <div class="sm:col-span-1 md:col-span-1">
                 <label class="block text-sm font-medium mb-1">กรองหน่วยงาน</label>
                 <select id="filterOrg" class="select select-bordered w-full" onchange="filterProjects(event)">
                   <option value="">ทั้งหมด</option>
@@ -235,6 +260,12 @@ function renderProjectsAll() {
             <div class="shrink min-w-[180px] flex-1 max-w-[200px]">
               <label class="block text-sm font-medium mb-1">ค้นหาโครงการ</label>
               <input type="text" id="searchProject" class="input input-bordered w-full text-sm" placeholder="ค้นหาโครงการ" oninput="filterProjects(event)">
+            </div>
+            <div class="shrink min-w-[120px] flex-1 max-w-[140px]">
+              <label class="block text-sm font-medium mb-1">กรองจังหวัด</label>
+              <select id="filterProvince" class="select select-bordered w-full text-sm" onchange="filterProjects(event)">
+                ${projectFilterProvinceOptionsHtml()}
+              </select>
             </div>
             <div class="shrink min-w-[140px] flex-1 max-w-[160px]">
               <label class="block text-sm font-medium mb-1">กรองหน่วยงาน</label>
@@ -325,6 +356,9 @@ function renderProjectCards(projects) {
 
         <h3 class="font-semibold text-lg text-gray-800 mb-2 line-clamp-2">${p.title}</h3>
 
+        <div class="text-sm text-gray-500 mb-1">
+          <i class="fas fa-map-marker-alt mr-1"></i> ${projectProvinceLabel(p) || '—'}
+        </div>
         <div class="text-sm text-gray-500 mb-3">
           <i class="fas fa-building mr-1"></i> ${getOrgName(p.orgId)}
         </div>
@@ -367,6 +401,7 @@ function filterProjects(event) {
   };
 
   const search = getValue('searchProject').toLowerCase();
+  const provinceFilter = getValue('filterProvince');
   const orgFilter = getValue('filterOrg');
   const sdgFilter = getValue('filterSdg');
   const yearFilterInput = getValue('filterYear');
@@ -386,6 +421,9 @@ function filterProjects(event) {
   }
 
   if (search) projects = projects.filter(p => p.title.toLowerCase().includes(search));
+  if (provinceFilter) {
+    projects = projects.filter(p => projectProvinceLabel(p) === provinceFilter);
+  }
   if (orgFilter) projects = projects.filter(p => p.orgId === orgFilter);
   if (sdgFilter) projects = projects.filter(p => (p.sdg || []).includes(sdgFilter));
   if (yearFilter) projects = projects.filter(p => p.year === yearFilter);
@@ -442,6 +480,7 @@ function clearProjectFilters() {
   };
 
   clearAllElements('searchProject', '');
+  clearAllElements('filterProvince', '');
   clearAllElements('filterOrg', '');
   clearAllElements('filterSdg', '');
   clearAllElements('filterYear', '');
@@ -469,11 +508,32 @@ async function openProjectModal(projectId = null) {
         ${session.role === 'admin' ? `
         <div>
           <label class="block text-sm font-medium mb-2">หน่วยงาน</label>
-          <select id="swal-org" class="select select-bordered w-full">
-            ${DB.orgs.map(o => `<option value="${o.id}" ${project?.orgId === o.id ? 'selected' : ''}>${o.name}</option>`).join('')}
+          <select id="swal-org" class="select select-bordered w-full" onchange="syncProjectProvinceFromOrg()">
+            ${DB.orgs.map(o => `<option value="${o.id}" data-province="${o.province || ''}" ${project?.orgId === o.id ? 'selected' : ''}>${o.name}</option>`).join('')}
           </select>
         </div>
         ` : ''}
+        <div>
+          <label class="block text-sm font-medium mb-2">จังหวัด</label>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="swal-project-province" 
+              class="input input-bordered w-full bg-gray-50 pr-10 ${session.role === 'admin' ? 'cursor-not-allowed' : ''}" 
+              value="" 
+              placeholder="ระบุจังหวัด"
+              autocomplete="off"
+              readonly
+            >
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <i class="fas fa-map-marker-alt text-gray-400"></i>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1.5">
+            <i class="fas fa-sync-alt text-gray-400 mr-1"></i>
+            ระบบจะกำหนดจังหวัดจากหน่วยงานโดยอัตโนมัติ
+          </p>
+        </div>
         <div>
           <label class="block text-sm font-medium mb-2">งบประมาณ (บาท)</label>
           <input id="swal-budget" type="number" class="input input-bordered w-full" value="${project?.budget || ''}" placeholder="เช่น 50000">
@@ -553,6 +613,27 @@ async function openProjectModal(projectId = null) {
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#2563eb',
     didOpen: () => {
+      window.syncProjectProvinceFromOrg = () => {
+        const orgSel = document.getElementById('swal-org');
+        const provInput = document.getElementById('swal-project-province');
+        if (!orgSel || !provInput) return;
+        const selected = orgSel.options[orgSel.selectedIndex];
+        const orgProvince = selected?.dataset?.province || '';
+        provInput.value = orgProvince;
+      };
+      
+      // Auto-fill province for non-admin from their org
+      if (session.role !== 'admin' && session.orgId) {
+        const org = DB.orgs.find(o => o.id === session.orgId);
+        const provInput = document.getElementById('swal-project-province');
+        if (org && provInput) {
+          provInput.value = (org.province || '').trim();
+        }
+      } else if (session.role === 'admin') {
+        // Admin: sync from selected org
+        syncProjectProvinceFromOrg();
+      }
+
       const fileInput = document.getElementById('swal-images');
       const previewDiv = document.getElementById('swal-image-preview');
       const countSpan = document.getElementById('swal-image-count');
@@ -626,6 +707,21 @@ async function openProjectModal(projectId = null) {
       const objective = document.getElementById('swal-objective').value.trim();
       const policy = document.getElementById('swal-policy').value.trim();
       const orgId = session.role === 'admin' ? document.getElementById('swal-org')?.value : session.orgId;
+      // Province comes from org automatically for all roles
+      let provinceField = document.getElementById('swal-project-province');
+      let province = provinceField ? provinceField.value.trim() : undefined;
+
+      // Ensure province is set from org for all roles
+      if (session.role === 'admin') {
+        const orgSel = document.getElementById('swal-org');
+        if (orgSel) {
+          const selected = orgSel.options[orgSel.selectedIndex];
+          province = selected?.dataset?.province || '';
+        }
+      } else if (session.orgId) {
+        const org = DB.orgs.find(o => o.id === session.orgId);
+        if (org) province = (org.province || '').trim();
+      }
       const sdg = Array.from(document.querySelectorAll('.swal2-popup input[type="checkbox"]:checked')).map(cb => cb.value);
       const images = window.getSelectedImages ? window.getSelectedImages() : (project?.images || []);
 
@@ -665,6 +761,7 @@ async function openProjectModal(projectId = null) {
       const parsedBudget = Number(budget);
       const parsedYear = Number(yearInput) || 2569;
       const body = { title, budget: parsedBudget, owner, year: parsedYear, startDate, endDate, objective, policy, sdg, orgId: orgId || session.orgId, images };
+      if (province) body.province = province;
 
       try {
         if (project) {
@@ -675,7 +772,7 @@ async function openProjectModal(projectId = null) {
         return body;
       } catch (e) {
         const msg = e.message || 'เกิดข้อผิดพลาด';
-        const fieldMap = { 'ผู้รับผิดชอบ': 'owner', 'งบประมาณ': 'budget', 'ปีงบประมาณ': 'year', 'วันเริ่มต้น': 'start', 'วันสิ้นสุด': 'end', 'วัตถุประสงค์': 'objective', 'นโยบาย': 'policy', 'SDG': 'sdg', 'รูปกิจกรรม': 'images', 'ชื่อโครงการ': 'title' };
+        const fieldMap = { 'ผู้รับผิดชอบ': 'owner', 'งบประมาณ': 'budget', 'ปีงบประมาณ': 'year', 'วันเริ่มต้น': 'start', 'วันสิ้นสุด': 'end', 'วัตถุประสงค์': 'objective', 'นโยบาย': 'policy', 'SDG': 'sdg', 'รูปกิจกรรม': 'images', 'ชื่อโครงการ': 'title', 'จังหวัด': 'province' };
         let target = 'title';
         for (const [k, v] of Object.entries(fieldMap)) { if (msg.includes(k)) { target = v; break; } }
         showErr(target, msg);
@@ -726,6 +823,7 @@ async function viewProject(projectId) {
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div><p class="text-sm text-gray-500">หน่วยงาน</p><p class="font-semibold">${getOrgName(project.orgId)}</p></div>
+          <div><p class="text-sm text-gray-500">จังหวัด</p><p class="font-semibold">${projectProvinceLabel(project) || '—'}</p></div>
           <div><p class="text-sm text-gray-500">งบประมาณ</p><p class="font-semibold">${formatMoney(project.budget)} บาท</p></div>
           <div><p class="text-sm text-gray-500">ผู้รับผิดชอบ</p><p class="font-semibold">${project.owner || '-'}</p></div>
           <div><p class="text-sm text-gray-500">ปีงบประมาณ</p><p class="font-semibold">${project.year}</p></div>

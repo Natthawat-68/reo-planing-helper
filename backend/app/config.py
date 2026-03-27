@@ -3,7 +3,7 @@ import os
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "sdg-system-secure-key-handoff-2026")
-    ADMIN_PIN = os.environ.get("ADMIN_PIN", "123456")
+    ADMIN_PIN = os.environ.get("ADMIN_PIN", "")
 
     _instance_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "instance")
     os.makedirs(_instance_path, exist_ok=True)

@@ -13,6 +13,7 @@ def _org_to_json(org: Org) -> dict:
     return {
         "id": org.id,
         "name": org.name,
+        "province": getattr(org, "province", None) or "",
         "active": org.active,
         "projectCount": project_count,
     }
@@ -34,6 +35,7 @@ def list_orgs_public():
         items.append({
             "id": o.id,
             "name": o.name,
+            "province": getattr(o, "province", None) or "",
             "active": o.active,
             "projectCount": project_count,
         })
@@ -46,11 +48,14 @@ def create_org():
         return err
     data = request.get_json(silent=True) or {}
     name = str(data.get("name", "")).strip()
+    province = str(data.get("province", "") or "").strip()
     if not name:
         return jsonify(message="กรุณาระบุชื่อหน่วยงาน"), 400
+    if not province:
+        return jsonify(message="กรุณาระบุจังหวัด"), 400
     org_id = "org-" + uuid.uuid4().hex[:8]
     pin = generate_unique_org_pin()
-    org = Org(id=org_id, name=name, active=True, pin=pin)
+    org = Org(id=org_id, name=name, province=province, active=True, pin=pin)
     db.session.add(org)
     db.session.add(AuditLog(
         at=int(time.time() * 1000),
@@ -95,6 +100,20 @@ def update_org(org_id: str):
             org_id=org_id,
             details=f"เปลี่ยนชื่อ: '{old_name}' -> '{name}'",
         ))
+    if "province" in data:
+        prov = str(data.get("province") or "").strip()
+        if not prov:
+            return jsonify(message="กรุณาระบุจังหวัด"), 400
+        if prov != (getattr(org, "province", None) or ""):
+            old_p = getattr(org, "province", None) or ""
+            org.province = prov
+            db.session.add(AuditLog(
+                at=int(time.time() * 1000),
+                action="update_org",
+                by_username=get_current_username(),
+                org_id=org_id,
+                details=f"เปลี่ยนจังหวัด: '{old_p}' -> '{prov}'",
+            ))
     db.session.commit()
     return jsonify(item=_org_to_json(org), message="อัปเดตสำเร็จ"), 200
 

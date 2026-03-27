@@ -6,6 +6,7 @@ class Org(db.Model):
     __tablename__ = "orgs"
     id = db.Column(db.String(64), primary_key=True)
     name = db.Column(db.String(500), nullable=False)
+    province = db.Column(db.String(120), nullable=False, default="")
     active = db.Column(db.Boolean, default=True, nullable=False)
     pin = db.Column(db.String(6), nullable=False, default="123456")
     projects = db.relationship("Project", back_populates="org")
@@ -21,6 +22,7 @@ class Project(db.Model):
     __tablename__ = "projects"
     id = db.Column(db.String(64), primary_key=True)
     org_id = db.Column(db.String(64), db.ForeignKey("orgs.id"), nullable=False)
+    province = db.Column(db.String(120), nullable=False, default="")
     title = db.Column(db.String(500), nullable=False)
     budget = db.Column(db.Float, nullable=True)
     objective = db.Column(db.Text, nullable=True)

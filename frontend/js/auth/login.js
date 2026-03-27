@@ -12,7 +12,7 @@ async function initLogin() {
 
     const opt = document.createElement('option');
     opt.value = org.id;
-    opt.textContent = org.name;
+    opt.textContent = org.province ? `${org.name} (${org.province})` : org.name;
     select.appendChild(opt);
   });
 
